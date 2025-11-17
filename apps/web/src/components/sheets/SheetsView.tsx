@@ -89,13 +89,13 @@ export function SheetsView() {
       <div className="border-b border-dark-border bg-dark-surface p-6">
         <div className="max-w-7xl mx-auto space-y-4">
           <div className="flex items-center justify-between">
-            <h1 className="text-2xl font-bold flex items-center gap-2">
-              <Table2 className="w-6 h-6 text-brand-primary" />
+            <h1 className="text-2xl font-bold flex items-center gap-2 text-white">
+              <Table2 className="w-6 h-6 text-white" />
               Sheets
             </h1>
             <button className="btn-primary flex items-center gap-2">
-              <Plus className="w-4 h-4" />
-              New Sheet
+              <Plus className="w-4 h-4 text-dark-bg" />
+              <span className="text-dark-bg">New Sheet</span>
             </button>
           </div>
 
@@ -107,7 +107,7 @@ export function SheetsView() {
                 onClick={() => setActiveSheet(sheet)}
                 className={`px-4 py-2 rounded-ai text-sm font-medium whitespace-nowrap transition-all ${
                   activeSheet.id === sheet.id
-                    ? 'bg-brand-primary text-white'
+                    ? 'bg-white text-dark-bg'
                     : 'bg-dark-hover text-dark-text-secondary hover:text-dark-text-primary'
                 }`}
               >
@@ -130,12 +130,12 @@ export function SheetsView() {
             </div>
             <div className="flex gap-2">
               <button className="btn-secondary flex items-center gap-2">
-                <Filter className="w-4 h-4" />
-                Filter
+                <Filter className="w-4 h-4 text-white" />
+                <span className="text-white">Filter</span>
               </button>
               <button className="btn-secondary flex items-center gap-2">
-                <Download className="w-4 h-4" />
-                Export
+                <Download className="w-4 h-4 text-white" />
+                <span className="text-white">Export</span>
               </button>
             </div>
           </div>
@@ -200,7 +200,7 @@ export function SheetsView() {
                           ) : column.type === 'email' ? (
                             <a
                               href={`mailto:${row.data[column.id]}`}
-                              className="text-brand-primary hover:underline"
+                              className="text-white hover:underline"
                             >
                               {row.data[column.id]}
                             </a>
@@ -212,10 +212,10 @@ export function SheetsView() {
                       <td className="px-4 py-3 text-right">
                         <div className="flex items-center justify-end gap-2">
                           <button className="btn-icon p-1.5">
-                            <Edit3 className="w-4 h-4" />
+                            <Edit3 className="w-4 h-4 text-white" />
                           </button>
                           <button className="btn-icon p-1.5 hover:text-red-500">
-                            <Trash2 className="w-4 h-4" />
+                            <Trash2 className="w-4 h-4 text-white" />
                           </button>
                         </div>
                       </td>
@@ -227,7 +227,7 @@ export function SheetsView() {
           </div>
 
           {/* Add Row Button */}
-          <button className="mt-4 w-full py-3 border-2 border-dashed border-dark-border rounded-ai hover:border-brand-primary hover:bg-dark-surface transition-all text-dark-text-tertiary hover:text-brand-primary flex items-center justify-center gap-2">
+          <button className="mt-4 w-full py-3 border-2 border-dashed border-dark-border rounded-ai hover:border-white hover:bg-dark-surface transition-all text-dark-text-tertiary hover:text-white flex items-center justify-center gap-2">
             <Plus className="w-4 h-4" />
             Add Row
           </button>

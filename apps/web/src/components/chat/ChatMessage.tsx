@@ -27,18 +27,11 @@ export function ChatMessage({ message, index }: ChatMessageProps) {
       {/* Avatar */}
       <div className="flex-shrink-0">
         {isUser ? (
-          <div className="w-8 h-8 rounded-full bg-gradient-to-br from-brand-primary to-brand-accent flex items-center justify-center">
+          <div className="w-8 h-8 rounded-full bg-dark-hover border border-dark-border flex items-center justify-center">
             <User className="w-4 h-4 text-white" />
           </div>
         ) : (
-          <div
-            className="w-8 h-8 rounded-full flex items-center justify-center text-lg"
-            style={{
-              background: agent
-                ? `linear-gradient(135deg, ${agent.color}, ${agent.color}dd)`
-                : 'linear-gradient(135deg, #4F9EFF, #7B61FF)',
-            }}
-          >
+          <div className="w-8 h-8 rounded-full bg-dark-hover border border-dark-border flex items-center justify-center text-lg">
             {agent ? (
               <span className="text-sm">{agent.icon}</span>
             ) : (
@@ -94,7 +87,7 @@ export function ChatMessage({ message, index }: ChatMessageProps) {
         <div
           className={`px-4 py-3 rounded-ai-lg ${
             isUser
-              ? 'bg-brand-primary text-white'
+              ? 'bg-white text-dark-bg'
               : 'bg-dark-surface border border-dark-border text-dark-text-primary'
           }`}
         >

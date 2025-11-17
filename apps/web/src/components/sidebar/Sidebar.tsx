@@ -50,10 +50,10 @@ export function Sidebar({ onClose, mobile }: SidebarProps) {
       {/* Header */}
       <div className="p-4 border-b border-dark-border flex items-center justify-between">
         <div className="flex items-center gap-2">
-          <div className="w-8 h-8 rounded-ai bg-gradient-to-br from-brand-primary to-brand-secondary flex items-center justify-center">
+          <div className="w-8 h-8 rounded-ai bg-dark-hover border border-dark-border flex items-center justify-center">
             <Sparkles className="w-4 h-4 text-white" />
           </div>
-          <h1 className="font-semibold text-lg">AI Agent Team</h1>
+          <h1 className="font-semibold text-lg text-white">AI Agent Team</h1>
         </div>
         {mobile && (
           <button onClick={onClose} className="btn-icon">
@@ -78,7 +78,7 @@ export function Sidebar({ onClose, mobile }: SidebarProps) {
               <item.icon className="w-5 h-5 flex-shrink-0" />
               <span className="flex-1 text-sm font-medium">{item.label}</span>
               {item.badge && (
-                <span className="px-2 py-0.5 text-xs bg-brand-primary/20 text-brand-primary rounded-ai-sm">
+                <span className="px-2 py-0.5 text-xs bg-white/10 text-white rounded-ai-sm">
                   {item.badge}
                 </span>
               )}
@@ -185,17 +185,17 @@ export function Sidebar({ onClose, mobile }: SidebarProps) {
       {/* Footer */}
       <div className="border-t border-dark-border p-3">
         <Link href="/settings" className="sidebar-item">
-          <Settings className="w-5 h-5" />
+          <Settings className="w-5 h-5 text-white" />
           <span className="text-sm font-medium">Settings</span>
         </Link>
         <div className="sidebar-item mt-1">
-          <div className="w-8 h-8 rounded-full bg-gradient-to-br from-brand-primary to-brand-accent flex items-center justify-center">
+          <div className="w-8 h-8 rounded-full bg-dark-hover border border-dark-border flex items-center justify-center">
             <User className="w-4 h-4 text-white" />
           </div>
           <div className="flex-1 min-w-0">
-            <p className="text-sm font-medium truncate">Your Name</p>
+            <p className="text-sm font-medium truncate text-white">Preet</p>
             <p className="text-xs text-dark-text-tertiary truncate">
-              you@example.com
+              preet@example.com
             </p>
           </div>
         </div>

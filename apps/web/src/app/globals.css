@@ -34,7 +34,7 @@
 
 @layer components {
   .btn-primary {
-    @apply px-4 py-2.5 bg-brand-primary text-white rounded-ai font-medium hover:bg-brand-primary/90 transition-all duration-200 active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed;
+    @apply px-4 py-2.5 bg-white text-dark-bg rounded-ai font-medium hover:bg-white/90 transition-all duration-200 active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed;
   }
 
   .btn-secondary {
@@ -46,7 +46,7 @@
   }
 
   .input-primary {
-    @apply w-full px-4 py-3 bg-dark-surface border border-dark-border rounded-ai text-dark-text-primary placeholder:text-dark-text-tertiary focus:outline-none focus:ring-2 focus:ring-brand-primary/50 focus:border-brand-primary transition-all duration-200;
+    @apply w-full px-4 py-3 bg-dark-surface border border-dark-border rounded-ai text-dark-text-primary placeholder:text-dark-text-tertiary focus:outline-none focus:ring-2 focus:ring-white/20 focus:border-white transition-all duration-200;
   }
 
   .card {

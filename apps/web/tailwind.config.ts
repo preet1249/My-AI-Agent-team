@@ -25,9 +25,9 @@ const config: Config = {
           },
         },
         brand: {
-          primary: '#4F9EFF',
-          secondary: '#7B61FF',
-          accent: '#FF6B9D',
+          primary: '#FFFFFF',
+          secondary: '#E8E8E8',
+          accent: '#A0A0A0',
         },
       },
       borderRadius: {

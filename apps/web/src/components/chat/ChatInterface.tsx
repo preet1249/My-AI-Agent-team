@@ -82,13 +82,13 @@ export function ChatInterface() {
                 animate={{ opacity: 1, y: 0 }}
                 className="flex items-center gap-3"
               >
-                <div className="w-8 h-8 rounded-full bg-gradient-to-br from-brand-primary to-brand-secondary flex items-center justify-center">
+                <div className="w-8 h-8 rounded-full bg-dark-surface border border-dark-border flex items-center justify-center">
                   <div className="w-2 h-2 bg-white rounded-full animate-pulse" />
                 </div>
                 <div className="flex gap-1">
-                  <div className="w-2 h-2 bg-dark-text-tertiary rounded-full animate-bounce [animation-delay:-0.3s]" />
-                  <div className="w-2 h-2 bg-dark-text-tertiary rounded-full animate-bounce [animation-delay:-0.15s]" />
-                  <div className="w-2 h-2 bg-dark-text-tertiary rounded-full animate-bounce" />
+                  <div className="w-2 h-2 bg-white rounded-full animate-bounce [animation-delay:-0.3s]" />
+                  <div className="w-2 h-2 bg-white rounded-full animate-bounce [animation-delay:-0.15s]" />
+                  <div className="w-2 h-2 bg-white rounded-full animate-bounce" />
                 </div>
               </motion.div>
             )}

@@ -66,13 +66,13 @@ export function CalendarView() {
   const getEventTypeColor = (type: CalendarEvent['type']) => {
     switch (type) {
       case 'call':
-        return 'bg-brand-primary'
+        return 'bg-white'
       case 'task':
-        return 'bg-green-500'
+        return 'bg-white/70'
       case 'meeting':
-        return 'bg-purple-500'
+        return 'bg-white/50'
       default:
-        return 'bg-gray-500'
+        return 'bg-white/30'
     }
   }
 
@@ -83,8 +83,8 @@ export function CalendarView() {
         <div className="max-w-5xl mx-auto">
           {/* Header */}
           <div className="flex items-center justify-between mb-6">
-            <h1 className="text-2xl font-bold flex items-center gap-2">
-              <CalendarIcon className="w-6 h-6 text-brand-primary" />
+            <h1 className="text-2xl font-bold flex items-center gap-2 text-white">
+              <CalendarIcon className="w-6 h-6 text-white" />
               Calendar
             </h1>
             <div className="flex items-center gap-2">
@@ -105,8 +105,8 @@ export function CalendarView() {
               </button>
             </div>
             <button className="btn-primary flex items-center gap-2">
-              <Plus className="w-4 h-4" />
-              New Event
+              <Plus className="w-4 h-4 text-dark-bg" />
+              <span className="text-dark-bg">New Event</span>
             </button>
           </div>
 
@@ -137,15 +137,15 @@ export function CalendarView() {
                     onClick={() => setSelectedDate(day)}
                     className={`min-h-[100px] p-2 border-r border-b border-dark-border hover:bg-dark-hover transition-colors ${
                       !isSameMonth(day, currentDate) ? 'opacity-30' : ''
-                    } ${isSelected ? 'bg-dark-hover ring-1 ring-brand-primary' : ''}`}
+                    } ${isSelected ? 'bg-dark-hover ring-1 ring-white' : ''}`}
                   >
                     <div className="flex flex-col h-full">
                       <span
                         className={`text-sm font-medium mb-1 w-7 h-7 flex items-center justify-center rounded-full ${
                           isCurrentDay
-                            ? 'bg-brand-primary text-white'
+                            ? 'bg-white text-dark-bg'
                             : isSelected
-                            ? 'text-brand-primary'
+                            ? 'text-white'
                             : 'text-dark-text-primary'
                         }`}
                       >

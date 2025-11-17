@@ -63,8 +63,8 @@ export function HistoryView() {
       {/* Header */}
       <div className="border-b border-dark-border bg-dark-surface p-6">
         <div className="max-w-5xl mx-auto space-y-4">
-          <h1 className="text-2xl font-bold flex items-center gap-2">
-            <Clock className="w-6 h-6 text-brand-primary" />
+          <h1 className="text-2xl font-bold flex items-center gap-2 text-white">
+            <Clock className="w-6 h-6 text-white" />
             History
           </h1>
 
@@ -85,7 +85,7 @@ export function HistoryView() {
                 onClick={() => setFilterType('all')}
                 className={`px-4 py-2 rounded-ai text-sm font-medium transition-all ${
                   filterType === 'all'
-                    ? 'bg-brand-primary text-white'
+                    ? 'bg-white text-dark-bg'
                     : 'bg-dark-surface text-dark-text-secondary hover:text-dark-text-primary'
                 }`}
               >
@@ -95,7 +95,7 @@ export function HistoryView() {
                 onClick={() => setFilterType('conversations')}
                 className={`px-4 py-2 rounded-ai text-sm font-medium transition-all ${
                   filterType === 'conversations'
-                    ? 'bg-brand-primary text-white'
+                    ? 'bg-white text-dark-bg'
                     : 'bg-dark-surface text-dark-text-secondary hover:text-dark-text-primary'
                 }`}
               >
@@ -105,7 +105,7 @@ export function HistoryView() {
                 onClick={() => setFilterType('documents')}
                 className={`px-4 py-2 rounded-ai text-sm font-medium transition-all ${
                   filterType === 'documents'
-                    ? 'bg-brand-primary text-white'
+                    ? 'bg-white text-dark-bg'
                     : 'bg-dark-surface text-dark-text-secondary hover:text-dark-text-primary'
                 }`}
               >
@@ -140,14 +140,14 @@ export function HistoryView() {
                 >
                   <Link
                     href={`/chat/${conversation.id}`}
-                    className="card p-5 hover:border-brand-primary/50 transition-all group block"
+                    className="card p-5 hover:border-white/30 transition-all group block"
                   >
                     <div className="flex items-start gap-4">
-                      <div className="p-3 rounded-ai bg-dark-hover group-hover:bg-brand-primary/20 transition-colors">
-                        <MessageSquare className="w-5 h-5 text-brand-primary" />
+                      <div className="p-3 rounded-ai bg-dark-hover group-hover:bg-white/10 transition-colors">
+                        <MessageSquare className="w-5 h-5 text-white" />
                       </div>
                       <div className="flex-1 min-w-0">
-                        <h3 className="font-semibold text-dark-text-primary mb-1 group-hover:text-brand-primary transition-colors">
+                        <h3 className="font-semibold text-dark-text-primary mb-1 group-hover:text-white transition-colors">
                           {conversation.title}
                         </h3>
                         <p className="text-sm text-dark-text-secondary line-clamp-2 mb-2">
