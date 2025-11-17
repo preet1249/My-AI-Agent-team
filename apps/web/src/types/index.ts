@@ -1,3 +1,5 @@
+import { LucideIcon } from 'lucide-react'
+
 export type AgentType =
   | 'product_manager'
   | 'finance_manager'
@@ -11,7 +13,7 @@ export interface Agent {
   id: AgentType
   name: string
   description: string
-  icon: string
+  icon: LucideIcon
   color: string
 }
 
@@ -83,7 +85,7 @@ export interface CalendarEvent {
 export interface Department {
   id: string
   name: string
-  icon: string
+  icon: LucideIcon
   description: string
   agents: AgentType[]
 }

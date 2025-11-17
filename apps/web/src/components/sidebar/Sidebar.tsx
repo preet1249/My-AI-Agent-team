@@ -100,7 +100,7 @@ export function Sidebar({ onClose, mobile }: SidebarProps) {
                   }
                   className="sidebar-item w-full"
                 >
-                  <span className="text-lg">{dept.icon}</span>
+                  <dept.icon className="w-5 h-5 text-white" />
                   <span className="flex-1 text-left text-sm font-medium">
                     {dept.name}
                   </span>
@@ -127,7 +127,7 @@ export function Sidebar({ onClose, mobile }: SidebarProps) {
                           onClick={mobile ? onClose : undefined}
                           className="flex items-center gap-2 px-3 py-2 rounded-ai text-xs text-dark-text-secondary hover:bg-dark-hover hover:text-dark-text-primary transition-all"
                         >
-                          <span>{agent.icon}</span>
+                          <agent.icon className="w-4 h-4 text-white" />
                           <span>{agent.name}</span>
                         </Link>
                       )

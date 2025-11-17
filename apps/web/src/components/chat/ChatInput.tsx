@@ -127,11 +127,8 @@ export function ChatInput({ onSend, disabled }: ChatInputProps) {
                   onClick={() => selectAgent(agent.id)}
                   className="w-full flex items-center gap-3 px-3 py-2.5 rounded-ai hover:bg-dark-hover transition-all group"
                 >
-                  <div
-                    className="w-8 h-8 rounded-ai flex items-center justify-center text-lg"
-                    style={{ backgroundColor: agent.color + '20' }}
-                  >
-                    {agent.icon}
+                  <div className="w-8 h-8 rounded-ai bg-dark-hover border border-dark-border flex items-center justify-center">
+                    <agent.icon className="w-4 h-4 text-white" />
                   </div>
                   <div className="flex-1 text-left">
                     <p className="text-sm font-medium text-dark-text-primary">

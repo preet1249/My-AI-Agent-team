@@ -31,9 +31,9 @@ export function ChatMessage({ message, index }: ChatMessageProps) {
             <User className="w-4 h-4 text-white" />
           </div>
         ) : (
-          <div className="w-8 h-8 rounded-full bg-dark-hover border border-dark-border flex items-center justify-center text-lg">
+          <div className="w-8 h-8 rounded-full bg-dark-hover border border-dark-border flex items-center justify-center">
             {agent ? (
-              <span className="text-sm">{agent.icon}</span>
+              <agent.icon className="w-4 h-4 text-white" />
             ) : (
               <Sparkles className="w-4 h-4 text-white" />
             )}
