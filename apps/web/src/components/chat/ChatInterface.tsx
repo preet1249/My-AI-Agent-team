@@ -63,43 +63,43 @@ export function ChatInterface() {
   }
 
   return (
-    <div className="h-full flex items-center justify-center p-6">
-      <div className="w-full max-w-5xl h-[85vh] flex flex-col bg-dark-surface border border-dark-border rounded-ai-lg overflow-hidden">
-        {/* Messages Area */}
-        <div className="flex-1 overflow-y-auto">
-          {messages.length === 0 ? (
-            <WelcomeScreen onQuickAction={handleSendMessage} />
-          ) : (
-            <div className="px-6 py-6 space-y-6">
-              <AnimatePresence mode="popLayout">
-                {messages.map((message, index) => (
-                  <ChatMessage key={message.id} message={message} index={index} />
-                ))}
-              </AnimatePresence>
+    <div className="h-full flex flex-col relative">
+      {/* Messages Area */}
+      <div className="flex-1 overflow-y-auto">
+        {messages.length === 0 ? (
+          <WelcomeScreen onQuickAction={handleSendMessage} />
+        ) : (
+          <div className="max-w-4xl mx-auto px-4 py-6 space-y-6">
+            <AnimatePresence mode="popLayout">
+              {messages.map((message, index) => (
+                <ChatMessage key={message.id} message={message} index={index} />
+              ))}
+            </AnimatePresence>
 
-              {isLoading && (
-                <motion.div
-                  initial={{ opacity: 0, y: 10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  className="flex items-center gap-3"
-                >
-                  <div className="w-8 h-8 rounded-full bg-dark-hover border border-dark-border flex items-center justify-center">
-                    <div className="w-2 h-2 bg-white rounded-full animate-pulse" />
-                  </div>
-                  <div className="flex gap-1">
-                    <div className="w-2 h-2 bg-white rounded-full animate-bounce [animation-delay:-0.3s]" />
-                    <div className="w-2 h-2 bg-white rounded-full animate-bounce [animation-delay:-0.15s]" />
-                    <div className="w-2 h-2 bg-white rounded-full animate-bounce" />
-                  </div>
-                </motion.div>
-              )}
-              <div ref={messagesEndRef} />
-            </div>
-          )}
-        </div>
+            {isLoading && (
+              <motion.div
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="flex items-center gap-3"
+              >
+                <div className="w-8 h-8 rounded-full bg-dark-hover border border-dark-border flex items-center justify-center">
+                  <div className="w-2 h-2 bg-white rounded-full animate-pulse" />
+                </div>
+                <div className="flex gap-1">
+                  <div className="w-2 h-2 bg-white rounded-full animate-bounce [animation-delay:-0.3s]" />
+                  <div className="w-2 h-2 bg-white rounded-full animate-bounce [animation-delay:-0.15s]" />
+                  <div className="w-2 h-2 bg-white rounded-full animate-bounce" />
+                </div>
+              </motion.div>
+            )}
+            <div ref={messagesEndRef} />
+          </div>
+        )}
+      </div>
 
-        {/* Input Area */}
-        <div className="border-t border-dark-border bg-dark-bg px-6 py-4">
+      {/* Input Area - Centered */}
+      <div className="border-t border-dark-border bg-dark-bg py-6">
+        <div className="max-w-4xl mx-auto px-4">
           <ChatInput onSend={handleSendMessage} disabled={isLoading} />
         </div>
       </div>
