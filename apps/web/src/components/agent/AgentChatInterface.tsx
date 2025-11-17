@@ -2,17 +2,18 @@
 
 import { useState, useRef, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { ChatInput } from './ChatInput'
-import { ChatMessage } from './ChatMessage'
-import { WelcomeScreen } from './WelcomeScreen'
-import { Message } from '@/types'
+import { ChatInput } from '../chat/ChatInput'
+import { ChatMessage } from '../chat/ChatMessage'
+import { Agent, Message } from '@/types'
 import { nanoid } from 'nanoid'
+import { ArrowLeft } from 'lucide-react'
+import Link from 'next/link'
 
-interface ChatInterfaceProps {
-  conversationId?: string
+interface AgentChatInterfaceProps {
+  agent: Agent
 }
 
-export function ChatInterface({ conversationId }: ChatInterfaceProps = {}) {
+export function AgentChatInterface({ agent }: AgentChatInterfaceProps) {
   const [messages, setMessages] = useState<Message[]>([])
   const [isLoading, setIsLoading] = useState(false)
   const messagesEndRef = useRef<HTMLDivElement>(null)
@@ -25,10 +26,9 @@ export function ChatInterface({ conversationId }: ChatInterfaceProps = {}) {
     scrollToBottom()
   }, [messages])
 
-  // Load messages from localStorage
+  // Load messages from localStorage for this agent
   useEffect(() => {
-    const storageKey = conversationId ? `conversation_${conversationId}` : 'main_conversation'
-    const savedMessages = localStorage.getItem(storageKey)
+    const savedMessages = localStorage.getItem(`agent_${agent.id}_messages`)
     if (savedMessages) {
       const parsed = JSON.parse(savedMessages)
       setMessages(parsed.map((msg: any) => ({
@@ -36,15 +36,14 @@ export function ChatInterface({ conversationId }: ChatInterfaceProps = {}) {
         timestamp: new Date(msg.timestamp)
       })))
     }
-  }, [conversationId])
+  }, [agent.id])
 
   // Save messages to localStorage whenever they change
   useEffect(() => {
     if (messages.length > 0) {
-      const storageKey = conversationId ? `conversation_${conversationId}` : 'main_conversation'
-      localStorage.setItem(storageKey, JSON.stringify(messages))
+      localStorage.setItem(`agent_${agent.id}_messages`, JSON.stringify(messages))
     }
-  }, [messages, conversationId])
+  }, [messages, agent.id])
 
   const handleSendMessage = async (
     content: string,
@@ -58,7 +57,7 @@ export function ChatInterface({ conversationId }: ChatInterfaceProps = {}) {
       role: 'user',
       content,
       timestamp: new Date(),
-      agentType: mentionedAgent as any,
+      agentType: agent.id,
       attachments: attachments?.map((file) => ({
         id: nanoid(),
         type: file.type.startsWith('image/') ? 'image' : 'document',
@@ -71,16 +70,14 @@ export function ChatInterface({ conversationId }: ChatInterfaceProps = {}) {
     setMessages((prev) => [...prev, userMessage])
     setIsLoading(true)
 
-    // Simulate AI response (replace with actual API call)
+    // Simulate AI response from this specific agent
     setTimeout(() => {
       const assistantMessage: Message = {
         id: nanoid(),
         role: 'assistant',
-        content: `I understand you want to ${content.toLowerCase()}. I'll help you with that using ${
-          mentionedAgent || 'our general AI'
-        }.`,
+        content: `As your ${agent.name}, I'll help you with ${content.toLowerCase()}. ${agent.description}`,
         timestamp: new Date(),
-        agentType: mentionedAgent as any,
+        agentType: agent.id,
       }
       setMessages((prev) => [...prev, assistantMessage])
       setIsLoading(false)
@@ -89,10 +86,40 @@ export function ChatInterface({ conversationId }: ChatInterfaceProps = {}) {
 
   return (
     <div className="h-full flex flex-col relative">
+      {/* Agent Header */}
+      <div className="border-b border-dark-border bg-dark-surface px-6 py-4">
+        <div className="max-w-4xl mx-auto flex items-center gap-4">
+          <Link href="/" className="btn-icon">
+            <ArrowLeft className="w-5 h-5 text-white" />
+          </Link>
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-ai bg-dark-hover border border-dark-border flex items-center justify-center">
+              <agent.icon className="w-5 h-5 text-white" />
+            </div>
+            <div>
+              <h1 className="text-lg font-semibold text-white">{agent.name}</h1>
+              <p className="text-sm text-dark-text-tertiary">{agent.description}</p>
+            </div>
+          </div>
+        </div>
+      </div>
+
       {/* Messages Area */}
       <div className="flex-1 overflow-y-auto">
         {messages.length === 0 ? (
-          <WelcomeScreen onQuickAction={handleSendMessage} />
+          <div className="h-full flex items-center justify-center px-4">
+            <div className="text-center max-w-md">
+              <div className="w-16 h-16 mx-auto mb-4 rounded-ai-lg bg-dark-hover border border-dark-border flex items-center justify-center">
+                <agent.icon className="w-8 h-8 text-white" />
+              </div>
+              <h2 className="text-xl font-semibold text-white mb-2">
+                Chat with {agent.name}
+              </h2>
+              <p className="text-dark-text-secondary">
+                {agent.description}. Start a conversation below.
+              </p>
+            </div>
+          </div>
         ) : (
           <div className="max-w-4xl mx-auto px-4 py-6 space-y-6">
             <AnimatePresence mode="popLayout">
@@ -122,7 +149,7 @@ export function ChatInterface({ conversationId }: ChatInterfaceProps = {}) {
         )}
       </div>
 
-      {/* Input Area - Centered */}
+      {/* Input Area */}
       <div className="border-t border-dark-border bg-dark-bg py-6">
         <div className="max-w-4xl mx-auto px-4">
           <ChatInput onSend={handleSendMessage} disabled={isLoading} />
