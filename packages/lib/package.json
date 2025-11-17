@@ -1,0 +1,15 @@
+{
+  "name": "@ai-agent-team/lib",
+  "version": "1.0.0",
+  "main": "index.ts",
+  "types": "index.ts",
+  "scripts": {
+    "lint": "eslint ."
+  },
+  "dependencies": {
+    "@supabase/supabase-js": "^2.39.7"
+  },
+  "devDependencies": {
+    "typescript": "^5.3.3"
+  }
+}

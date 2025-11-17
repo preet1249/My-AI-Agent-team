@@ -1,0 +1,24 @@
+services:
+  - type: web
+    name: ai-agent-team-backend
+    env: python
+    plan: free
+    buildCommand: pip install -r requirements.txt && playwright install chromium
+    startCommand: uvicorn main:app --host 0.0.0.0 --port $PORT
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.11.0
+      - key: PORT
+        value: 8000
+      - key: SUPABASE_URL
+        sync: false
+      - key: SUPABASE_KEY
+        sync: false
+      - key: REDIS_URL
+        sync: false
+      - key: OPENROUTER_API_KEY
+        sync: false
+      - key: WEBHOOK_SECRET
+        generateValue: true
+      - key: INTERNAL_SIGNING_KEY
+        generateValue: true
