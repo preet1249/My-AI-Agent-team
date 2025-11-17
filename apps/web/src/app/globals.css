@@ -54,7 +54,7 @@
   }
 
   .sidebar-item {
-    @apply flex items-center gap-3 px-3 py-2.5 rounded-ai text-dark-text-secondary hover:bg-dark-hover hover:text-dark-text-primary transition-all duration-200 cursor-pointer group;
+    @apply flex items-center gap-3 px-3 py-2.5 rounded-ai text-dark-text-secondary hover:bg-dark-hover hover:text-dark-text-primary transition-all duration-200 cursor-pointer;
   }
 
   .sidebar-item-active {
