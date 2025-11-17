@@ -1,0 +1,6 @@
+packages/
+apps/mobile/
+apps/backend/
+*.md
+.github/
+.vscode/
