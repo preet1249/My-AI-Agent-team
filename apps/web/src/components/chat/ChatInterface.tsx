@@ -7,6 +7,7 @@ import { ChatMessage } from './ChatMessage'
 import { WelcomeScreen } from './WelcomeScreen'
 import { Message } from '@/types'
 import { nanoid } from 'nanoid'
+import { API_URL } from '@/lib/constants'
 
 interface ChatInterfaceProps {
   conversationId?: string
@@ -71,20 +72,57 @@ export function ChatInterface({ conversationId }: ChatInterfaceProps = {}) {
     setMessages((prev) => [...prev, userMessage])
     setIsLoading(true)
 
-    // Simulate AI response (replace with actual API call)
-    setTimeout(() => {
+    try {
+      // Determine which agent endpoint to call
+      const agentEndpoint = mentionedAgent
+        ? `/api/agents/${mentionedAgent.replace('_', '-')}`
+        : '/api/agents/personal-assistant'
+
+      // Call real backend API
+      const response = await fetch(`${API_URL}${agentEndpoint}`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          user_id: 'user-123', // Replace with actual user ID from auth
+          prompt: content,
+          context: {
+            conversation_id: conversationId || 'default',
+          },
+        }),
+      })
+
+      if (!response.ok) {
+        throw new Error(`API error: ${response.statusText}`)
+      }
+
+      const data = await response.json()
+
       const assistantMessage: Message = {
         id: nanoid(),
         role: 'assistant',
-        content: `I understand you want to ${content.toLowerCase()}. I'll help you with that using ${
-          mentionedAgent || 'our general AI'
-        }.`,
+        content: data.response || data.output?.response || 'No response from agent',
         timestamp: new Date(),
         agentType: mentionedAgent as any,
       }
+
       setMessages((prev) => [...prev, assistantMessage])
+    } catch (error) {
+      console.error('Error calling agent:', error)
+
+      const errorMessage: Message = {
+        id: nanoid(),
+        role: 'assistant',
+        content: `❌ Error: ${error instanceof Error ? error.message : 'Failed to get response from agent'}. Please make sure the backend is running at ${API_URL}`,
+        timestamp: new Date(),
+        agentType: mentionedAgent as any,
+      }
+
+      setMessages((prev) => [...prev, errorMessage])
+    } finally {
       setIsLoading(false)
-    }, 1500)
+    }
   }
 
   const handleThink = async (query: string) => {
@@ -93,7 +131,7 @@ export function ChatInterface({ conversationId }: ChatInterfaceProps = {}) {
     const userMessage: Message = {
       id: nanoid(),
       role: 'user',
-      content: query,
+      content: `🔍 ${query}`,
       timestamp: new Date(),
       agentType: 'think' as any,
     }
@@ -101,18 +139,61 @@ export function ChatInterface({ conversationId }: ChatInterfaceProps = {}) {
     setMessages((prev) => [...prev, userMessage])
     setIsLoading(true)
 
-    // Call Think Mode API (DuckDuckGo search + analysis)
-    setTimeout(() => {
+    try {
+      // Call Think Mode API (DuckDuckGo search + analysis)
+      const response = await fetch(`${API_URL}/api/think`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          user_id: 'user-123', // Replace with actual user ID from auth
+          query: query,
+          max_results: 5,
+        }),
+      })
+
+      if (!response.ok) {
+        throw new Error(`API error: ${response.statusText}`)
+      }
+
+      const data = await response.json()
+
+      // Format Think mode response with sources
+      let thinkContent = `🔍 **Think Mode Results**\n\n`
+      thinkContent += `**Answer:**\n${data.answer || 'No answer generated'}\n\n`
+
+      if (data.sources && data.sources.length > 0) {
+        thinkContent += `**Sources:**\n`
+        data.sources.forEach((source: any, index: number) => {
+          thinkContent += `${index + 1}. [${source.title || 'Source'}](${source.url})\n`
+        })
+      }
+
       const assistantMessage: Message = {
         id: nanoid(),
         role: 'assistant',
-        content: `🔍 **Think Mode Activated**\n\nSearching the web for: "${query}"\n\nI'm using DuckDuckGo to search and analyze the latest information. This will include web scraping and intelligent analysis of the results.\n\n*This is a simulated response. Connect to backend /api/think endpoint for real results.*`,
+        content: thinkContent,
         timestamp: new Date(),
         agentType: 'think' as any,
       }
+
       setMessages((prev) => [...prev, assistantMessage])
+    } catch (error) {
+      console.error('Error in Think mode:', error)
+
+      const errorMessage: Message = {
+        id: nanoid(),
+        role: 'assistant',
+        content: `❌ Think Mode Error: ${error instanceof Error ? error.message : 'Failed to search and analyze'}. Please make sure the backend is running at ${API_URL}`,
+        timestamp: new Date(),
+        agentType: 'think' as any,
+      }
+
+      setMessages((prev) => [...prev, errorMessage])
+    } finally {
       setIsLoading(false)
-    }, 2000)
+    }
   }
 
   return (

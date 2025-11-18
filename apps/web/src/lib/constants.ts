@@ -1,6 +1,9 @@
 import { Agent, Department } from '@/types'
 import { Target, DollarSign, Megaphone, Search, Mail, Phone, Settings, BarChart3, TrendingUp, Briefcase, Code, Sparkles } from 'lucide-react'
 
+// API Configuration
+export const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'
+
 export const AGENTS: Agent[] = [
   {
     id: 'product_manager',
