@@ -91,15 +91,15 @@
 
 Click **Advanced** → **Add Environment Variable**
 
-Copy these (from your `.env` file):
+⚠️ **IMPORTANT**: Copy values from your LOCAL `.env` file - DO NOT use values from this guide!
 
 ```env
-SUPABASE_URL=https://whdtxycynbxwyaqpxajg.supabase.co
-SUPABASE_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6IndoZHR4eWN5bmJ4d3lhcXB4YWpnIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc2MzQ2Mjc1MywiZXhwIjoyMDc5MDM4NzUzfQ.RI3MKmTApcmvOr2a5E0ZBY1ea5rPeBAPE__xDrLtOwo
+SUPABASE_URL=your_supabase_url_here
+SUPABASE_KEY=your_service_role_key_here
 
-REDIS_URL=redis://default:AWc1AAIncDJhOWJiMjZhOTAwYWU0MzBhODI5MDY4OWIzODUyNWYwZXAyMjY0MjE@wealthy-bear-26421.upstash.io:6379
+REDIS_URL=your_redis_url_here
 
-OPENROUTER_API_KEY=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
+OPENROUTER_API_KEY=your_openrouter_key_here
 OPENROUTER_BASE_URL=https://openrouter.ai/api/v1
 
 PRODUCT_MANAGER_MODEL=nvidia/nemotron-nano-12b-v2-vl:free
@@ -110,8 +110,8 @@ EMAILER_MODEL=nvidia/nemotron-nano-12b-v2-vl:free
 CALLPREP_MODEL=nvidia/nemotron-nano-12b-v2-vl:free
 ENGINEER_MODEL=anthropic/claude-3-haiku
 
-INTERNAL_SIGNING_KEY=c90fa68ed1f554502fe1315f867852ecc3a29924f95dbd3a5590de75b5be5286
-WEBHOOK_SECRET=0f1fb42d9197800426c8a8e26a6bc43e0891500562d0cd6b7f8eec9dde2c9a0b
+INTERNAL_SIGNING_KEY=generate_with_openssl_rand_hex_32
+WEBHOOK_SECRET=generate_with_openssl_rand_hex_32
 
 GMAIL_CREDENTIALS_JSON={"type":"placeholder"}
 

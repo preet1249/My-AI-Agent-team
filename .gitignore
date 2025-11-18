@@ -69,3 +69,4 @@ docker-compose.override.yml
 .cache/
 temp/
 tmp/
+apps/backend/.env
