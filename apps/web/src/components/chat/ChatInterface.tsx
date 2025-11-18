@@ -99,10 +99,12 @@ export function ChatInterface({ conversationId }: ChatInterfaceProps = {}) {
 
       const data = await response.json()
 
+      // Backend returns: {success: true, data: {response: "...", ...}}
+      const agentData = data.data || data
       const assistantMessage: Message = {
         id: nanoid(),
         role: 'assistant',
-        content: data.response || data.output?.response || 'No response from agent',
+        content: agentData.response || agentData.output?.response || 'No response from agent',
         timestamp: new Date(),
         agentType: mentionedAgent as any,
       }
@@ -159,15 +161,23 @@ export function ChatInterface({ conversationId }: ChatInterfaceProps = {}) {
 
       const data = await response.json()
 
+      // Backend returns: {success: true, data: {response: "...", sources: [...], ...}}
+      const thinkData = data.data || data
+
       // Format Think mode response with sources
       let thinkContent = `🔍 **Think Mode Results**\n\n`
-      thinkContent += `**Answer:**\n${data.answer || 'No answer generated'}\n\n`
+      thinkContent += `**Answer:**\n${thinkData.response || thinkData.answer || 'No answer generated'}\n\n`
 
-      if (data.sources && data.sources.length > 0) {
+      if (thinkData.sources && thinkData.sources.length > 0) {
         thinkContent += `**Sources:**\n`
-        data.sources.forEach((source: any, index: number) => {
+        thinkData.sources.forEach((source: any, index: number) => {
           thinkContent += `${index + 1}. [${source.title || 'Source'}](${source.url})\n`
         })
+        thinkContent += `\n**Total sources:** ${thinkData.sources.length}`
+      }
+
+      if (thinkData.agent_used) {
+        thinkContent += `\n\n*Analyzed by: ${thinkData.agent_used}*`
       }
 
       const assistantMessage: Message = {
