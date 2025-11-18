@@ -32,25 +32,27 @@ class OpenRouterClient:
     async def call_model(
         self,
         model: str,
-        messages: List[Dict[str, str]],
+        messages: List[Dict[str, Any]],
         temperature: float = 0.7,
         max_tokens: int = 2000,
         use_toon: bool = False,
+        extra_body: Dict[str, Any] = None,
         extra_params: Dict[str, Any] = None
     ) -> Dict[str, Any]:
         """
-        Call OpenRouter model with retry logic
+        Call OpenRouter model with retry logic and reasoning support
 
         Args:
-            model: Model identifier (e.g., "nvidia/nemotron-4-340b-instruct")
-            messages: Chat messages in OpenAI format
+            model: Model identifier (e.g., "nvidia/nemotron-nano-12b-v2-vl:free")
+            messages: Chat messages in OpenAI format (can include reasoning_details)
             temperature: Sampling temperature (0-1)
             max_tokens: Maximum tokens to generate
             use_toon: Convert messages to TOON format for token efficiency
+            extra_body: Extra body parameters (e.g., {"reasoning": {"enabled": True}})
             extra_params: Additional model-specific parameters
 
         Returns:
-            Response dict with 'content', 'model', 'tokens_used'
+            Response dict with 'content', 'model', 'tokens_used', 'reasoning_details'
 
         Raises:
             httpx.HTTPStatusError: If API returns error
@@ -67,9 +69,16 @@ class OpenRouterClient:
             "max_tokens": max_tokens
         }
 
-        # Enable reasoning for NVIDIA NeMo models
+        # Enable reasoning for NVIDIA NeMo models by default
         if "nvidia" in model.lower() or "nemotron" in model.lower():
-            payload["extra_body"] = {"reasoning": {"enabled": True}}
+            if not extra_body:
+                extra_body = {"reasoning": {"enabled": True}}
+            elif "reasoning" not in extra_body:
+                extra_body["reasoning"] = {"enabled": True}
+
+        # Add extra_body if provided
+        if extra_body:
+            payload["extra_body"] = extra_body
 
         if extra_params:
             payload.update(extra_params)
@@ -92,16 +101,21 @@ class OpenRouterClient:
                 response.raise_for_status()
                 data = response.json()
 
-                # Extract content
-                content = data["choices"][0]["message"]["content"]
+                # Extract content and reasoning_details
+                message = data["choices"][0]["message"]
+                content = message["content"]
+                reasoning_details = message.get("reasoning_details")
                 tokens_used = data.get("usage", {}).get("total_tokens", 0)
 
                 logger.info(f"Model call successful. Tokens used: {tokens_used}")
+                if reasoning_details:
+                    logger.info(f"Reasoning enabled. Tokens: {reasoning_details.get('tokens_used', 0)}")
 
                 return {
                     "content": content,
                     "model": model,
                     "tokens_used": tokens_used,
+                    "reasoning_details": reasoning_details,
                     "raw_response": data
                 }
 
