@@ -87,6 +87,34 @@ export function ChatInterface({ conversationId }: ChatInterfaceProps = {}) {
     }, 1500)
   }
 
+  const handleThink = async (query: string) => {
+    if (!query.trim()) return
+
+    const userMessage: Message = {
+      id: nanoid(),
+      role: 'user',
+      content: query,
+      timestamp: new Date(),
+      agentType: 'think' as any,
+    }
+
+    setMessages((prev) => [...prev, userMessage])
+    setIsLoading(true)
+
+    // Call Think Mode API (DuckDuckGo search + analysis)
+    setTimeout(() => {
+      const assistantMessage: Message = {
+        id: nanoid(),
+        role: 'assistant',
+        content: `🔍 **Think Mode Activated**\n\nSearching the web for: "${query}"\n\nI'm using DuckDuckGo to search and analyze the latest information. This will include web scraping and intelligent analysis of the results.\n\n*This is a simulated response. Connect to backend /api/think endpoint for real results.*`,
+        timestamp: new Date(),
+        agentType: 'think' as any,
+      }
+      setMessages((prev) => [...prev, assistantMessage])
+      setIsLoading(false)
+    }, 2000)
+  }
+
   return (
     <div className="h-full flex flex-col relative">
       {/* Messages Area */}
@@ -125,7 +153,11 @@ export function ChatInterface({ conversationId }: ChatInterfaceProps = {}) {
       {/* Input Area - Centered */}
       <div className="border-t border-dark-border bg-dark-bg py-6">
         <div className="max-w-4xl mx-auto px-4">
-          <ChatInput onSend={handleSendMessage} disabled={isLoading} />
+          <ChatInput
+            onSend={handleSendMessage}
+            onThink={handleThink}
+            disabled={isLoading}
+          />
         </div>
       </div>
     </div>

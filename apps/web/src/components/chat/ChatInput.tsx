@@ -8,16 +8,18 @@ import {
   Image as ImageIcon,
   AtSign,
   Sparkles,
+  Lightbulb,
 } from 'lucide-react'
 import { AGENTS } from '@/lib/constants'
 import { motion, AnimatePresence } from 'framer-motion'
 
 interface ChatInputProps {
   onSend: (message: string, attachments?: File[], agent?: string) => void
+  onThink?: (query: string) => void
   disabled?: boolean
 }
 
-export function ChatInput({ onSend, disabled }: ChatInputProps) {
+export function ChatInput({ onSend, onThink, disabled }: ChatInputProps) {
   const [message, setMessage] = useState('')
   const [attachments, setAttachments] = useState<File[]>([])
   const [showAgentMenu, setShowAgentMenu] = useState(false)
@@ -49,6 +51,23 @@ export function ChatInput({ onSend, disabled }: ChatInputProps) {
     if (disabled) return
 
     onSend(message, attachments, selectedAgent || undefined)
+    setMessage('')
+    setAttachments([])
+    setSelectedAgent(null)
+    setShowAgentMenu(false)
+
+    // Reset textarea height
+    if (inputRef.current) {
+      inputRef.current.style.height = 'auto'
+    }
+  }
+
+  const handleThink = () => {
+    if (!message.trim()) return
+    if (disabled) return
+    if (!onThink) return
+
+    onThink(message)
     setMessage('')
     setAttachments([])
     setSelectedAgent(null)
@@ -220,6 +239,19 @@ export function ChatInput({ onSend, disabled }: ChatInputProps) {
           style={{ minHeight: '40px' }}
         />
 
+        {/* Think Button */}
+        {onThink && (
+          <button
+            onClick={handleThink}
+            disabled={disabled || !message.trim()}
+            className="btn-secondary px-4 py-2 flex items-center gap-2 shrink-0 bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
+            title="Think mode - Search the web and analyze"
+          >
+            <Lightbulb className="w-4 h-4 text-white" />
+            <span className="hidden sm:inline text-white font-medium">Think</span>
+          </button>
+        )}
+
         {/* Send Button */}
         <button
           onClick={handleSubmit}
@@ -242,8 +274,14 @@ export function ChatInput({ onSend, disabled }: ChatInputProps) {
       </div>
 
       {/* Helper Text */}
-      <div className="mt-2 px-2 flex items-center justify-end text-xs text-dark-text-tertiary">
-        <span>
+      <div className="mt-2 px-2 flex items-center justify-between text-xs text-dark-text-tertiary">
+        {onThink && (
+          <span className="flex items-center gap-1">
+            <Lightbulb className="w-3 h-3" />
+            <span>Think mode searches the web with DuckDuckGo</span>
+          </span>
+        )}
+        <span className="ml-auto">
           <kbd className="px-1.5 py-0.5 bg-dark-hover rounded">Enter</kbd> to send
         </span>
       </div>
