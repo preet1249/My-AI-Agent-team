@@ -8,6 +8,7 @@ import { Agent, Message } from '@/types'
 import { nanoid } from 'nanoid'
 import { ArrowLeft } from 'lucide-react'
 import Link from 'next/link'
+import { API_URL } from '@/lib/constants'
 
 interface AgentChatInterfaceProps {
   agent: Agent
@@ -70,18 +71,127 @@ export function AgentChatInterface({ agent }: AgentChatInterfaceProps) {
     setMessages((prev) => [...prev, userMessage])
     setIsLoading(true)
 
-    // Simulate AI response from this specific agent
-    setTimeout(() => {
+    try {
+      // Call specific agent endpoint
+      const agentEndpoint = `/api/agents/${agent.id.replace('_', '-')}`
+
+      const response = await fetch(`${API_URL}${agentEndpoint}`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          user_id: 'user-123',
+          prompt: content,
+          context: {
+            conversation_id: `agent_${agent.id}`,
+          },
+        }),
+      })
+
+      if (!response.ok) {
+        throw new Error(`API error: ${response.statusText}`)
+      }
+
+      const data = await response.json()
+      const agentData = data.data || data
+
       const assistantMessage: Message = {
         id: nanoid(),
         role: 'assistant',
-        content: `As your ${agent.name}, I'll help you with ${content.toLowerCase()}. ${agent.description}`,
+        content: agentData.response || agentData.output?.response || 'No response from agent',
         timestamp: new Date(),
         agentType: agent.id,
       }
+
       setMessages((prev) => [...prev, assistantMessage])
+    } catch (error) {
+      console.error('Error calling agent:', error)
+
+      const errorMessage: Message = {
+        id: nanoid(),
+        role: 'assistant',
+        content: `❌ Error: ${error instanceof Error ? error.message : 'Failed to get response'}. Please make sure the backend is running at ${API_URL}`,
+        timestamp: new Date(),
+        agentType: agent.id,
+      }
+
+      setMessages((prev) => [...prev, errorMessage])
+    } finally {
       setIsLoading(false)
-    }, 1500)
+    }
+  }
+
+  const handleThink = async (query: string) => {
+    if (!query.trim()) return
+
+    const userMessage: Message = {
+      id: nanoid(),
+      role: 'user',
+      content: `🔍 ${query}`,
+      timestamp: new Date(),
+      agentType: 'think' as any,
+    }
+
+    setMessages((prev) => [...prev, userMessage])
+    setIsLoading(true)
+
+    try {
+      const response = await fetch(`${API_URL}/api/think`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          user_id: 'user-123',
+          query: query,
+          agent_name: agent.id,  // Use this agent for Think mode
+          max_results: 5,
+        }),
+      })
+
+      if (!response.ok) {
+        throw new Error(`API error: ${response.statusText}`)
+      }
+
+      const data = await response.json()
+      const thinkData = data.data || data
+
+      let thinkContent = `🔍 **Think Mode Results** (${agent.name})\n\n`
+      thinkContent += `**Answer:**\n${thinkData.response || thinkData.answer || 'No answer generated'}\n\n`
+
+      if (thinkData.sources && thinkData.sources.length > 0) {
+        thinkContent += `**Sources:**\n`
+        thinkData.sources.forEach((source: any, index: number) => {
+          thinkContent += `${index + 1}. [${source.title || 'Source'}](${source.url})\n`
+        })
+        thinkContent += `\n**Total sources:** ${thinkData.sources.length}`
+      }
+
+      const assistantMessage: Message = {
+        id: nanoid(),
+        role: 'assistant',
+        content: thinkContent,
+        timestamp: new Date(),
+        agentType: 'think' as any,
+      }
+
+      setMessages((prev) => [...prev, assistantMessage])
+    } catch (error) {
+      console.error('Error in Think mode:', error)
+
+      const errorMessage: Message = {
+        id: nanoid(),
+        role: 'assistant',
+        content: `❌ Think Mode Error: ${error instanceof Error ? error.message : 'Failed to search and analyze'}`,
+        timestamp: new Date(),
+        agentType: 'think' as any,
+      }
+
+      setMessages((prev) => [...prev, errorMessage])
+    } finally {
+      setIsLoading(false)
+    }
   }
 
   return (
@@ -152,7 +262,11 @@ export function AgentChatInterface({ agent }: AgentChatInterfaceProps) {
       {/* Input Area */}
       <div className="border-t border-dark-border bg-dark-bg py-6">
         <div className="max-w-4xl mx-auto px-4">
-          <ChatInput onSend={handleSendMessage} disabled={isLoading} />
+          <ChatInput
+            onSend={handleSendMessage}
+            onThink={handleThink}
+            disabled={isLoading}
+          />
         </div>
       </div>
     </div>
