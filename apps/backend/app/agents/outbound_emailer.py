@@ -1,12 +1,14 @@
 """
 Outbound Emailer Agent - Sends personalized emails via Gmail API
-Uses Claude Haiku for email generation
+Uses NVIDIA NeMo for email generation with conversation memory
 """
 from typing import Dict, Any, Optional, List
 from datetime import datetime
 from app.utils.openrouter_client import openrouter_client
 from app.database import supabase_client
 from app.utils.security import generate_external_id
+from app.utils.system_prompts import system_prompt_manager
+from app.utils.conversation_memory import conversation_memory
 from app.redis_client import redis_queue
 import logging
 
@@ -163,7 +165,7 @@ class OutboundEmailerAgent:
         template: Optional[str] = None
     ) -> Dict[str, str]:
         """
-        Generate personalized email content
+        Generate personalized email content using magic system prompt
 
         Args:
             lead: Lead data
@@ -172,28 +174,48 @@ class OutboundEmailerAgent:
         Returns:
             Dict with subject and body
         """
+        # Get magic system prompt
+        business_context = {
+            "lead_company": lead.get('company', 'N/A'),
+            "lead_metadata": lead.get('metadata', {}),
+            "template": template
+        }
+
+        system_prompt = system_prompt_manager.get_agent_prompt(
+            agent_name=self.agent_name,
+            business_context=business_context
+        )
+
         prompt = f"""
         Generate a personalized outbound email for this lead:
 
         Company: {lead.get('company', 'N/A')}
+        Name: {lead.get('name', '')}
         Email: {lead.get('email')}
-        Metadata: {lead.get('metadata', {})}
+        Role: {lead.get('metadata', {}).get('role', 'Unknown')}
+        Company Description: {lead.get('metadata', {}).get('company_description', '')}
 
-        Template: {template or 'Professional outreach email'}
+        Template: {template or 'Professional B2B outreach email'}
 
         Generate:
-        1. Subject line (max 60 chars)
-        2. Email body (personalized, professional, brief)
+        1. Subject line (max 60 chars, personalized)
+        2. Email body (personalized, professional, brief, value-focused)
 
         Return JSON: {{"subject": "...", "body": "..."}}
         """
 
         try:
             response = await self.client.call_model(
-                model="anthropic/claude-3-haiku",
-                messages=[{"role": "user", "content": prompt}],
+                model="nvidia/nemotron-nano-12b-v2-vl:free",
+                messages=[
+                    {"role": "system", "content": system_prompt},
+                    {"role": "user", "content": prompt}
+                ],
                 temperature=0.7,
-                max_tokens=800
+                max_tokens=800,
+                extra_body={
+                    "reasoning": {"enabled": True}
+                }
             )
 
             import json
@@ -202,10 +224,13 @@ class OutboundEmailerAgent:
 
         except Exception as e:
             logger.error(f"Failed to generate email: {e}")
-            # Fallback
+            # Fallback with personalized data
+            company_name = lead.get('company', 'your business')
+            person_name = lead.get('name', 'there')
+
             return {
-                "subject": f"Quick question about {lead.get('company', 'your business')}",
-                "body": f"Hi,\n\nI noticed {lead.get('company', 'your company')} and wanted to reach out.\n\nBest regards"
+                "subject": f"Quick question about {company_name}",
+                "body": f"Hi {person_name},\n\nI noticed {company_name} and wanted to reach out.\n\nBest regards"
             }
 
 

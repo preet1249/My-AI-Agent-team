@@ -1,12 +1,14 @@
 """
 Booking & Call Prep Agent - Schedules meetings and generates call scripts
-Uses Claude Haiku for script generation
+Uses NVIDIA NeMo for script generation with conversation memory
 """
 from typing import Dict, Any, Optional
 from datetime import datetime, timedelta
 from app.utils.openrouter_client import openrouter_client
 from app.database import supabase_client
 from app.utils.security import generate_external_id
+from app.utils.system_prompts import system_prompt_manager
+from app.utils.conversation_memory import conversation_memory
 import logging
 
 logger = logging.getLogger(__name__)
@@ -166,7 +168,7 @@ class BookingCallPrepAgent:
         context: Dict[str, Any]
     ) -> Dict[str, Any]:
         """
-        Generate call script using LLM
+        Generate call script using magic system prompt and NVIDIA NeMo
 
         Args:
             meeting_type: Type of meeting
@@ -178,33 +180,54 @@ class BookingCallPrepAgent:
         lead = context.get("lead", {})
         email_history = context.get("email_history", [])
 
+        # Get magic system prompt
+        business_context = {
+            "meeting_type": meeting_type,
+            "lead_data": lead,
+            "email_history_count": len(email_history)
+        }
+
+        system_prompt = system_prompt_manager.get_agent_prompt(
+            agent_name=self.agent_name,
+            business_context=business_context
+        )
+
         prompt = f"""
         Generate a call script for a {meeting_type} call.
 
         Lead Information:
         - Company: {lead.get('company', 'N/A')}
+        - Name: {lead.get('name', 'N/A')}
         - Email: {lead.get('email', 'N/A')}
+        - Role: {lead.get('metadata', {}).get('role', 'Unknown')}
         - Score: {lead.get('score', 0)}/100
+        - Company Description: {lead.get('metadata', {}).get('company_description', '')}
         - Metadata: {lead.get('metadata', {})}
 
         Previous Interactions: {len(email_history)} emails exchanged
 
         Generate a structured call script with:
-        1. Opening (introduction, rapport building)
-        2. Discovery questions (3-5 questions)
-        3. Value proposition
-        4. Objection handling
-        5. Next steps / closing
+        1. Opening (personalized introduction, rapport building)
+        2. Discovery questions (5-7 strategic questions tailored to their role/company)
+        3. Value proposition (specific to their industry/needs)
+        4. Objection handling (3-4 common objections with responses)
+        5. Next steps / closing (clear CTA)
 
-        Return JSON format.
+        Return JSON format with these exact keys: opening, discovery_questions, value_proposition, objection_handling, next_steps
         """
 
         try:
             response = await self.client.call_model(
-                model="anthropic/claude-3-haiku",
-                messages=[{"role": "user", "content": prompt}],
+                model="nvidia/nemotron-nano-12b-v2-vl:free",
+                messages=[
+                    {"role": "system", "content": system_prompt},
+                    {"role": "user", "content": prompt}
+                ],
                 temperature=0.6,
-                max_tokens=1500
+                max_tokens=1500,
+                extra_body={
+                    "reasoning": {"enabled": True}
+                }
             )
 
             import json
@@ -213,16 +236,26 @@ class BookingCallPrepAgent:
 
         except Exception as e:
             logger.error(f"Failed to generate call script: {e}")
-            # Fallback script
+            # Fallback script with personalized data
+            company_name = lead.get('company', 'your business')
+            person_name = lead.get('name', 'there')
+
             return {
-                "opening": f"Hi, thanks for taking the time to speak with me about {lead.get('company', 'your business')}.",
+                "opening": f"Hi {person_name}, thanks for taking the time to speak with me about {company_name}. I've been researching your company and am excited to learn more.",
                 "discovery_questions": [
-                    "What are your current challenges?",
-                    "What solutions have you tried?",
-                    "What's your timeline?"
+                    "What are your current biggest challenges in your role?",
+                    "What solutions or tools have you tried to address these?",
+                    "How do you currently measure success in this area?",
+                    "What's your timeline for implementing a solution?",
+                    "Who else is involved in this decision?"
                 ],
-                "value_proposition": "We help companies like yours achieve their goals.",
-                "next_steps": "Would you like to schedule a follow-up?"
+                "value_proposition": f"We help companies like {company_name} achieve measurable results through proven strategies and tools.",
+                "objection_handling": {
+                    "budget": "I understand budget constraints. Let's focus on ROI and how we can start small.",
+                    "timing": "What would need to happen for the timing to be right?",
+                    "authority": "Who else should we involve in this conversation?"
+                },
+                "next_steps": "Based on our discussion, I'd like to schedule a follow-up to show you a customized demo. Does next week work for you?"
             }
 
 

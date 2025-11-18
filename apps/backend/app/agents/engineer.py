@@ -1,12 +1,15 @@
 """
 Engineer Agent - Writes code, debugs, and provides technical solutions
-Uses Claude 3 Haiku for code generation
+Uses Claude 3 Haiku for code generation with conversation memory
 """
 from typing import Dict, Any, Optional
 from datetime import datetime
 from app.utils.openrouter_client import openrouter_client
 from app.database import supabase_client
 from app.utils.security import generate_external_id
+from app.utils.system_prompts import system_prompt_manager
+from app.utils.conversation_memory import conversation_memory
+from app.utils.toon_converter import toon_converter
 import logging
 
 logger = logging.getLogger(__name__)
@@ -76,22 +79,86 @@ class EngineerAgent:
         task_id = task_result.data[0]["id"]
 
         try:
+            # Get or create conversation ID
+            conversation_id = context.get("conversation_id") if context else None
+            if not conversation_id:
+                conversation_id = f"engineer_{user_id}_{task_id}"
+
+            # Get conversation history
+            conversation_history = await conversation_memory.get_conversation_context(conversation_id)
+
+            # Add user message to history
+            await conversation_memory.add_message(
+                conversation_id=conversation_id,
+                role="user",
+                content=prompt,
+                agent_name=self.agent_name,
+                metadata={"task_id": task_id, "language": language}
+            )
+
+            # Build business context for magic prompt
+            business_context = {
+                "language": language,
+                "technical_context": context or {}
+            }
+
+            # Get magic system prompt
+            system_prompt = system_prompt_manager.get_agent_prompt(
+                agent_name=self.agent_name,
+                business_context=business_context
+            )
+
             # Enhance prompt with language context
             enhanced_prompt = prompt
             if language:
                 enhanced_prompt = f"Using {language}, {prompt}"
 
-            # Call LLM
-            response = await self.client.call_engineer(enhanced_prompt, context)
+            # Convert context to TOON format if large
+            context_str = ""
+            if context:
+                context_str = f"\n\nTechnical Context:\n{context}"
+                if len(context_str) > 500:
+                    context_str = f"\n\nTechnical Context:\n{toon_converter.to_toon(context)}"
+
+            # Build messages with conversation history
+            messages = [
+                {"role": "system", "content": system_prompt}
+            ]
+            messages.extend(conversation_history)
+
+            # Add current user message with context
+            current_message = enhanced_prompt + context_str
+            messages.append({"role": "user", "content": current_message})
+
+            # Call LLM with Claude Haiku (best for code generation)
+            response = await self.client.call_model(
+                model="anthropic/claude-3-haiku",
+                messages=messages,
+                temperature=0.3,  # Lower temp for precise code generation
+                max_tokens=3000
+            )
+
+            # Extract response content
+            response_content = response.get("content", "")
+
+            # Save assistant response to conversation memory
+            await conversation_memory.add_message(
+                conversation_id=conversation_id,
+                role="assistant",
+                content=response_content,
+                agent_name=self.agent_name,
+                metadata={"task_id": task_id}
+            )
 
             # Extract code blocks if present
-            code_blocks = self._extract_code_blocks(response)
+            code_blocks = self._extract_code_blocks(response_content)
 
             # Update task as completed
             output = {
-                "response": response,
+                "response": response_content,
                 "code_blocks": code_blocks,
                 "language": language,
+                "conversation_id": conversation_id,
                 "timestamp": datetime.utcnow().isoformat()
             }
 

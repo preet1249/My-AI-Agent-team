@@ -1,14 +1,17 @@
 """
 Personal AI Assistant - Sophia
 Has access to ALL app data and can coordinate with other agents
-Most intelligent agent with full context awareness
+Most intelligent agent with full context awareness and conversation memory
 """
-from typing import Dict, Any, Optional
+from typing import Dict, Any, Optional, List
 from datetime import datetime, timedelta
 from app.utils.openrouter_client import openrouter_client
 from app.database import supabase_client
 from app.utils.security import generate_external_id
 from app.utils.agent_router import agent_router, AGENT_ID_TO_NAME
+from app.utils.system_prompts import system_prompt_manager
+from app.utils.conversation_memory import conversation_memory
+from app.utils.toon_converter import toon_converter
 import logging
 import json
 
@@ -77,6 +80,23 @@ class PersonalAssistantAgent:
         task_id = task_result.data[0]["id"]
 
         try:
+            # Get or create conversation ID
+            conversation_id = context.get("conversation_id") if context else None
+            if not conversation_id:
+                conversation_id = f"assistant_{user_id}_{task_id}"
+
+            # Get conversation history
+            conversation_history = await conversation_memory.get_conversation_context(conversation_id)
+
+            # Add user message to history
+            await conversation_memory.add_message(
+                conversation_id=conversation_id,
+                role="user",
+                content=prompt,
+                agent_name=self.agent_name,
+                metadata={"task_id": task_id}
+            )
+
             # Gather COMPLETE context from entire app
             full_context = await self._gather_full_context(user_id)
 
@@ -96,8 +116,22 @@ class PersonalAssistantAgent:
                     "input": agent_input
                 }
 
-            # Generate response with full context
-            response = await self._generate_response(prompt, full_context)
+            # Generate response with full context and conversation history
+            response = await self._generate_response(
+                prompt,
+                full_context,
+                conversation_history,
+                conversation_id
+            )
+
+            # Save assistant response to conversation memory
+            await conversation_memory.add_message(
+                conversation_id=conversation_id,
+                role="assistant",
+                content=response,
+                agent_name=self.agent_name,
+                metadata={"task_id": task_id}
+            )
 
             # Execute any actions (task assignment, scheduling, etc.)
             actions = await self._execute_actions(user_id, response, prompt)
@@ -107,6 +141,7 @@ class PersonalAssistantAgent:
                 "response": response,
                 "actions_taken": actions,
                 "consulted_agents": [consultation] if consultation else [],
+                "conversation_id": conversation_id,
                 "timestamp": datetime.utcnow().isoformat()
             }
 
@@ -265,57 +300,63 @@ class PersonalAssistantAgent:
     async def _generate_response(
         self,
         prompt: str,
-        full_context: Dict[str, Any]
+        full_context: Dict[str, Any],
+        conversation_history: List[Dict[str, str]],
+        conversation_id: str
     ) -> str:
         """
-        Generate intelligent response with full context awareness
+        Generate intelligent response with full context awareness and memory
 
         Args:
             prompt: User's request
             full_context: Complete app context
+            conversation_history: Previous conversation messages
+            conversation_id: Conversation ID
 
         Returns:
             Sophia's response
         """
-        # Build system prompt with Sophia's personality
-        system_prompt = f"""
-You are Sophia, the Personal AI Assistant.
+        # Build business context for magic prompt
+        business_context = {
+            "recent_tasks_count": len(full_context.get('recent_tasks', [])),
+            "leads_count": len(full_context.get('leads', [])),
+            "calendar_count": len(full_context.get('calendar', [])),
+            "insights_count": len(full_context.get('insights', [])),
+            "campaigns_count": len(full_context.get('campaigns', [])),
+            "email_activity_count": len(full_context.get('email_activity', [])),
+            "context_data": full_context
+        }
 
-You have access to ALL user data and can see:
-- {len(full_context.get('recent_tasks', []))} recent tasks
-- {len(full_context.get('leads', []))} leads
-- {len(full_context.get('calendar', []))} upcoming calendar events
-- {len(full_context.get('insights', []))} product insights
-- {len(full_context.get('campaigns', []))} marketing campaigns
-- {len(full_context.get('email_activity', []))} recent email activities
-
-You are intelligent, proactive, and organized. You:
-- Understand context from past conversations and data
-- Assign tasks intelligently with specific dates/times
-- Coordinate with other agents (Alex, Marcus, Ryan, Jake, Chris, Daniel, Kevin)
-- Provide actionable, structured responses
-- Anticipate user needs
-
-Be conversational but professional. Think like an executive assistant who knows everything about the user's business.
-"""
+        # Get magic system prompt
+        system_prompt = system_prompt_manager.get_agent_prompt(
+            agent_name=self.agent_name,
+            business_context=business_context
+        )
 
         # Format context for LLM (use TOON for token efficiency)
-        from app.utils.toon_converter import toon_converter
-
         context_str = toon_converter.json_to_toon(full_context)
 
+        # Build messages with conversation history
         messages = [
             {"role": "system", "content": system_prompt},
-            {"role": "system", "content": f"User Data:\n{context_str}"},
-            {"role": "user", "content": prompt}
+            {"role": "system", "content": f"User Data (TOON format):\n{context_str}"}
         ]
 
-        # Call NVIDIA NeMo (most powerful model for Sophia)
+        # Add conversation history
+        messages.extend(conversation_history)
+
+        # Add current user message
+        messages.append({"role": "user", "content": prompt})
+
+        # Call NVIDIA NeMo with reasoning (most powerful for Sophia)
         response = await self.client.call_model(
-            model="nvidia/nemotron-4-340b-instruct",
+            model="nvidia/nemotron-nano-12b-v2-vl:free",
             messages=messages,
             temperature=0.7,
-            max_tokens=3000
+            max_tokens=3000,
+            extra_body={
+                "reasoning": {"enabled": True}
+            }
         )
 
         return response["content"]

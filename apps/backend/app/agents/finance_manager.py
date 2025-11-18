@@ -1,12 +1,15 @@
 """
 Finance Manager Agent - Analyzes finances, tracks expenses, provides budget insights
-Uses NVIDIA NeMo 340B for financial analysis
+Uses NVIDIA NeMo 340B for financial analysis with conversation memory
 """
 from typing import Dict, Any, Optional
 from datetime import datetime
 from app.utils.openrouter_client import openrouter_client
 from app.database import supabase_client
 from app.utils.security import generate_external_id
+from app.utils.system_prompts import system_prompt_manager
+from app.utils.conversation_memory import conversation_memory
+from app.utils.toon_converter import toon_converter
 import logging
 
 logger = logging.getLogger(__name__)
@@ -70,6 +73,23 @@ class FinanceManagerAgent:
         task_id = task_result.data[0]["id"]
 
         try:
+            # Get or create conversation ID
+            conversation_id = context.get("conversation_id") if context else None
+            if not conversation_id:
+                conversation_id = f"finance_{user_id}_{task_id}"
+
+            # Get conversation history
+            conversation_history = await conversation_memory.get_conversation_context(conversation_id)
+
+            # Add user message to history
+            await conversation_memory.add_message(
+                conversation_id=conversation_id,
+                role="user",
+                content=prompt,
+                agent_name=self.agent_name,
+                metadata={"task_id": task_id}
+            )
+
             # Enhance context with financial data
             if not context:
                 context = {}
@@ -85,16 +105,66 @@ class FinanceManagerAgent:
             if recent_campaigns.data:
                 context["recent_campaigns"] = recent_campaigns.data
 
-            # Call LLM
-            response = await self.client.call_finance_manager(prompt, context)
+            # Build business context for magic prompt
+            business_context = {
+                "recent_campaigns": recent_campaigns.data if recent_campaigns.data else [],
+                "financial_context": context.get("financial_data", {})
+            }
+
+            # Get magic system prompt
+            system_prompt = system_prompt_manager.get_agent_prompt(
+                agent_name=self.agent_name,
+                business_context=business_context
+            )
+
+            # Convert context to TOON format if large
+            context_str = f"Financial Context:\n{context}" if context else ""
+            if len(context_str) > 500:
+                context_str = toon_converter.to_toon(context)
+
+            # Build messages with conversation history
+            messages = [
+                {"role": "system", "content": system_prompt}
+            ]
+            messages.extend(conversation_history)
+
+            # Add current user message with context
+            current_message = prompt
+            if context_str:
+                current_message = f"{prompt}\n\n{context_str}"
+            messages.append({"role": "user", "content": current_message})
+
+            # Call LLM with NVIDIA NeMo reasoning
+            response = await self.client.call_model(
+                model="nvidia/nemotron-nano-12b-v2-vl:free",
+                messages=messages,
+                temperature=0.7,
+                max_tokens=2500,
+                extra_body={
+                    "reasoning": {"enabled": True}
+                }
+            )
+
+            # Extract response content
+            response_content = response.get("content", "")
+
+            # Save assistant response to conversation memory
+            await conversation_memory.add_message(
+                conversation_id=conversation_id,
+                role="assistant",
+                content=response_content,
+                agent_name=self.agent_name,
+                metadata={"task_id": task_id}
+            )
 
             # Extract metrics
-            metrics = self._extract_financial_metrics(response)
+            metrics = self._extract_financial_metrics(response_content)
 
             # Update task as completed
             output = {
-                "response": response,
+                "response": response_content,
                 "metrics": metrics,
+                "conversation_id": conversation_id,
                 "timestamp": datetime.utcnow().isoformat()
             }
 
