@@ -8,10 +8,12 @@ export type AgentType =
   | 'outbound_emailer'
   | 'booking_callprep'
   | 'engineer'
+  | 'personal_assistant'
 
 export interface Agent {
   id: AgentType
-  name: string
+  name: string  // Human name (e.g., "Alex", "Sophia")
+  fullTitle?: string  // Job title (e.g., "Product Manager")
   description: string
   icon: LucideIcon
   color: string

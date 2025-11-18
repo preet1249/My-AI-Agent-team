@@ -1589,4 +1589,4 @@ Start an Expo mobile app that reuses your packages/ui components — let Expo/Re
 
 When you want native install: build a local APK via React Native CLI or use EAS (if comfortable). For private personal use, sideload via adb install is fastest.
 
-Keep all sensitive keys server-side; mobile only talks to your backend.
+Keep all sensitive keys server-side; mobile only talks to your backend./resu

@@ -1,54 +1,69 @@
 import { Agent, Department } from '@/types'
-import { Target, DollarSign, Megaphone, Search, Mail, Phone, Settings, BarChart3, TrendingUp, Briefcase, Code } from 'lucide-react'
+import { Target, DollarSign, Megaphone, Search, Mail, Phone, Settings, BarChart3, TrendingUp, Briefcase, Code, Sparkles } from 'lucide-react'
 
 export const AGENTS: Agent[] = [
   {
     id: 'product_manager',
-    name: 'Product Manager',
+    name: 'Alex',
+    fullTitle: 'Product Manager',
     description: 'Analyzes trends, creates product insights, and manages roadmaps',
     icon: Target,
     color: '#FFFFFF',
   },
   {
     id: 'finance_manager',
-    name: 'Finance Manager',
+    name: 'Marcus',
+    fullTitle: 'Finance Manager',
     description: 'Handles budgets, forecasts, and financial planning',
     icon: DollarSign,
     color: '#FFFFFF',
   },
   {
     id: 'marketing_strategist',
-    name: 'Marketing Strategist',
+    name: 'Ryan',
+    fullTitle: 'Marketing Strategist',
     description: 'Creates marketing content and campaign strategies',
     icon: Megaphone,
     color: '#FFFFFF',
   },
   {
     id: 'leadgen_scraper',
-    name: 'Lead Generator',
+    name: 'Jake',
+    fullTitle: 'Lead Generator',
     description: 'Scrapes and collects qualified leads',
     icon: Search,
     color: '#FFFFFF',
   },
   {
     id: 'outbound_emailer',
-    name: 'Outbound Emailer',
+    name: 'Chris',
+    fullTitle: 'Outbound Emailer',
     description: 'Manages email campaigns and personalization',
     icon: Mail,
     color: '#FFFFFF',
   },
   {
     id: 'booking_callprep',
-    name: 'Call Prep Agent',
+    name: 'Daniel',
+    fullTitle: 'Call Prep Agent',
     description: 'Prepares call scripts and manages bookings',
     icon: Phone,
     color: '#FFFFFF',
   },
   {
     id: 'engineer',
-    name: 'Engineer Agent',
+    name: 'Kevin',
+    fullTitle: 'Engineer',
     description: 'Handles technical issues and system monitoring',
     icon: Code,
+    color: '#FFFFFF',
+  },
+  {
+    id: 'personal_assistant',
+    name: 'Sophia',
+    fullTitle: 'Personal AI Assistant',
+    description: 'Your intelligent assistant with access to all data. Coordinates with all agents.',
+    icon: Sparkles,
     color: '#FFFFFF',
   },
 ]
@@ -88,6 +103,13 @@ export const DEPARTMENTS: Department[] = [
     icon: Settings,
     description: 'Technical support and monitoring',
     agents: ['engineer'],
+  },
+  {
+    id: 'assistant',
+    name: 'Assistant',
+    icon: Sparkles,
+    description: 'Your personal AI assistant',
+    agents: ['personal_assistant'],
   },
 ]
 

@@ -1,0 +1,88 @@
+version: '3.8'
+
+services:
+  # Main orchestrator API
+  orchestrator:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: ai-agent-orchestrator
+    ports:
+      - "8000:8000"
+    environment:
+      - ENVIRONMENT=production
+      - PORT=8000
+      - SUPABASE_URL=${SUPABASE_URL}
+      - SUPABASE_KEY=${SUPABASE_KEY}
+      - REDIS_URL=${REDIS_URL}
+      - OPENROUTER_API_KEY=${OPENROUTER_API_KEY}
+      - INTERNAL_SIGNING_KEY=${INTERNAL_SIGNING_KEY}
+      - WEBHOOK_SECRET=${WEBHOOK_SECRET}
+      - GMAIL_CREDENTIALS_JSON=${GMAIL_CREDENTIALS_JSON}
+    depends_on:
+      - redis
+    restart: unless-stopped
+    networks:
+      - ai-agent-network
+
+  # Redis (if not using Upstash)
+  redis:
+    image: redis:7-alpine
+    container_name: ai-agent-redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis-data:/data
+    restart: unless-stopped
+    networks:
+      - ai-agent-network
+
+  # Scrape worker
+  scrape-worker:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: ai-agent-scrape-worker
+    command: python -m app.workers.scrape_worker
+    environment:
+      - ENVIRONMENT=production
+      - REDIS_URL=${REDIS_URL}
+      - SUPABASE_URL=${SUPABASE_URL}
+      - SUPABASE_KEY=${SUPABASE_KEY}
+      - WEBHOOK_SECRET=${WEBHOOK_SECRET}
+      - BACKEND_URL=http://orchestrator:8000
+    depends_on:
+      - orchestrator
+      - redis
+    restart: unless-stopped
+    networks:
+      - ai-agent-network
+
+  # Email worker
+  email-worker:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: ai-agent-email-worker
+    command: python -m app.workers.email_worker
+    environment:
+      - ENVIRONMENT=production
+      - REDIS_URL=${REDIS_URL}
+      - SUPABASE_URL=${SUPABASE_URL}
+      - SUPABASE_KEY=${SUPABASE_KEY}
+      - GMAIL_CREDENTIALS_JSON=${GMAIL_CREDENTIALS_JSON}
+      - WEBHOOK_SECRET=${WEBHOOK_SECRET}
+      - BACKEND_URL=http://orchestrator:8000
+    depends_on:
+      - orchestrator
+      - redis
+    restart: unless-stopped
+    networks:
+      - ai-agent-network
+
+volumes:
+  redis-data:
+
+networks:
+  ai-agent-network:
+    driver: bridge
