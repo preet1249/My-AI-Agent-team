@@ -103,6 +103,7 @@ class OpenRouterClient:
 
                 # Extract content and reasoning_details
                 message = data["choices"][0]["message"]
+                logger.debug(f"Message structure: {message}")
 
                 # Handle content - can be string or list
                 content = message.get("content", "")
@@ -118,7 +119,11 @@ class OpenRouterClient:
 
                 logger.info(f"Model call successful. Tokens used: {tokens_used}")
                 if reasoning_details:
-                    logger.info(f"Reasoning enabled. Tokens: {reasoning_details.get('tokens_used', 0)}")
+                    # Handle reasoning_details - can be dict or list
+                    if isinstance(reasoning_details, dict):
+                        logger.info(f"Reasoning enabled. Tokens: {reasoning_details.get('tokens_used', 0)}")
+                    else:
+                        logger.info(f"Reasoning enabled. Details: {reasoning_details}")
 
                 return {
                     "content": content,
