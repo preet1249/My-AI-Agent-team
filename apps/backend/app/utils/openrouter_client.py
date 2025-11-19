@@ -103,7 +103,16 @@ class OpenRouterClient:
 
                 # Extract content and reasoning_details
                 message = data["choices"][0]["message"]
-                content = message["content"]
+
+                # Handle content - can be string or list
+                content = message.get("content", "")
+                if isinstance(content, list):
+                    # If content is array, extract text from all parts
+                    content = " ".join(
+                        part.get("text", "") if isinstance(part, dict) else str(part)
+                        for part in content
+                    )
+
                 reasoning_details = message.get("reasoning_details")
                 tokens_used = data.get("usage", {}).get("total_tokens", 0)
 
