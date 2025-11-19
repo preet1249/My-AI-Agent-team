@@ -7,6 +7,8 @@ from duckduckgo_search import DDGS
 import httpx
 from bs4 import BeautifulSoup
 import logging
+import asyncio
+from tenacity import retry, stop_after_attempt, wait_exponential, retry_if_exception
 
 logger = logging.getLogger(__name__)
 
@@ -17,11 +19,18 @@ class WebSearcher:
     - No API key required
     - Unlimited searches
     - Returns clean, structured results
+    - Automatic retry with exponential backoff
     """
 
     def __init__(self):
-        self.ddgs = DDGS()
+        # Don't store DDGS instance - create fresh ones to avoid rate limits
+        pass
 
+    @retry(
+        stop=stop_after_attempt(3),
+        wait=wait_exponential(multiplier=2, min=4, max=30),
+        retry=retry_if_exception(lambda e: "Ratelimit" in str(e))
+    )
     async def search(
         self,
         query: str,
@@ -29,7 +38,7 @@ class WebSearcher:
         region: str = "wt-wt"
     ) -> List[Dict[str, Any]]:
         """
-        Search DuckDuckGo and return results
+        Search DuckDuckGo and return results with automatic retry on rate limits
 
         Args:
             query: Search query
@@ -42,7 +51,13 @@ class WebSearcher:
         try:
             logger.info(f"Searching DuckDuckGo for: {query}")
 
-            results = self.ddgs.text(
+            # Add small delay to avoid rate limits
+            await asyncio.sleep(1)
+
+            # Create fresh DDGS instance for each search
+            ddgs = DDGS(timeout=20)
+
+            results = ddgs.text(
                 keywords=query,
                 region=region,
                 max_results=max_results
@@ -61,6 +76,11 @@ class WebSearcher:
             return formatted_results
 
         except Exception as e:
+            # If rate limited, log and retry (tenacity will handle)
+            if "Ratelimit" in str(e):
+                logger.warning(f"DuckDuckGo rate limit hit, retrying with backoff...")
+                raise  # Re-raise to trigger retry
+
             logger.error(f"DuckDuckGo search failed: {e}")
             return []
 
