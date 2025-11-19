@@ -31,6 +31,7 @@ from app.utils.security import verify_internal_auth
 from app.utils.web_search import web_searcher
 from app.utils.agent_router import agent_router, AGENT_NAMES, AGENT_ID_TO_NAME
 from app.utils.openrouter_client import openrouter_client
+from app.utils.conversation_memory import conversation_memory
 from app.config import get_settings
 
 import logging
@@ -518,6 +519,95 @@ async def get_user_alerts(user_id: str, read: Optional[bool] = None):
 
     except Exception as e:
         logger.error(f"Get alerts error: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+# ===== Conversation Endpoints =====
+
+class ConversationCreateRequest(BaseModel):
+    user_id: str
+    title: Optional[str] = "New Chat"
+    agent_type: Optional[str] = None
+
+
+@app.post("/api/conversations")
+async def create_conversation(request: ConversationCreateRequest):
+    """Create a new conversation"""
+    try:
+        conversation_id = await conversation_memory.create_conversation(
+            user_id=request.user_id,
+            title=request.title,
+            agent_type=request.agent_type
+        )
+
+        if not conversation_id:
+            raise HTTPException(status_code=500, detail="Failed to create conversation")
+
+        return {
+            "success": True,
+            "data": {"conversation_id": conversation_id}
+        }
+
+    except Exception as e:
+        logger.error(f"Create conversation error: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.get("/api/conversations/{user_id}")
+async def get_conversations(user_id: str, limit: int = 20):
+    """Get list of conversations for a user"""
+    try:
+        conversations = await conversation_memory.get_conversations(user_id, limit)
+
+        return {
+            "success": True,
+            "data": conversations
+        }
+
+    except Exception as e:
+        logger.error(f"Get conversations error: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.get("/api/conversation/{conversation_id}")
+async def get_conversation(conversation_id: str):
+    """Get a specific conversation with all messages"""
+    try:
+        conversation = await conversation_memory.get_conversation(conversation_id)
+
+        if not conversation:
+            raise HTTPException(status_code=404, detail="Conversation not found")
+
+        return {
+            "success": True,
+            "data": conversation
+        }
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Get conversation error: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.patch("/api/conversation/{conversation_id}")
+async def update_conversation(conversation_id: str, title: Optional[str] = None):
+    """Update conversation metadata"""
+    try:
+        success = await conversation_memory.update_conversation(conversation_id, title)
+
+        if not success:
+            raise HTTPException(status_code=500, detail="Failed to update conversation")
+
+        return {
+            "success": True,
+            "data": {"conversation_id": conversation_id}
+        }
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Update conversation error: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
 
