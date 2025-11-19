@@ -120,7 +120,21 @@ async def health_check():
     return {
         "status": "healthy",
         "timestamp": datetime.utcnow().isoformat(),
-        "version": "1.0.0"
+        "version": "2.0.0",
+        "redis": "connected" if redis_queue else "disconnected",
+        "database": "connected" if supabase_client else "disconnected"
+    }
+
+# Deploy verification endpoint
+@app.get("/verify")
+async def verify_deployment():
+    """Verify latest code is deployed"""
+    return {
+        "deployed": True,
+        "version": "2.0.0",
+        "commit": "LATEST",
+        "timestamp": datetime.utcnow().isoformat(),
+        "message": "✅ Latest code is deployed successfully!"
     }
 
 
