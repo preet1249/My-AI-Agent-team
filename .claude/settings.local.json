@@ -8,7 +8,14 @@
       "Bash(git branch:*)",
       "Bash(git push:*)",
       "Bash(git remote:*)",
-      "Bash(del turbo.json)"
+      "Bash(del turbo.json)",
+      "Bash(openssl rand:*)",
+      "Bash(.gitignore)",
+      "Bash(cat:*)",
+      "Bash(git rm:*)",
+      "Bash(git fetch:*)",
+      "Bash(python -m py_compile:*)",
+      "Bash(python -c:*)"
     ],
     "deny": [],
     "ask": []

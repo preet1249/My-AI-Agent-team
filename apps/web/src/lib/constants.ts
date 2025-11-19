@@ -12,6 +12,7 @@ export const AGENTS: Agent[] = [
     description: 'Analyzes trends, creates product insights, and manages roadmaps',
     icon: Target,
     color: '#FFFFFF',
+    hasThinkButton: true,  // Advanced search for product trends and reviews
   },
   {
     id: 'finance_manager',
@@ -20,6 +21,7 @@ export const AGENTS: Agent[] = [
     description: 'Handles budgets, forecasts, and financial planning',
     icon: DollarSign,
     color: '#FFFFFF',
+    hasThinkButton: false,
   },
   {
     id: 'marketing_strategist',
@@ -28,6 +30,7 @@ export const AGENTS: Agent[] = [
     description: 'Creates marketing content and campaign strategies',
     icon: Megaphone,
     color: '#FFFFFF',
+    hasThinkButton: true,  // Advanced search for niche trends and content ideas
   },
   {
     id: 'leadgen_scraper',
@@ -36,6 +39,7 @@ export const AGENTS: Agent[] = [
     description: 'Scrapes and collects qualified leads',
     icon: Search,
     color: '#FFFFFF',
+    hasThinkButton: true,  // Advanced search for company info, emails, and leads
   },
   {
     id: 'outbound_emailer',
@@ -44,6 +48,7 @@ export const AGENTS: Agent[] = [
     description: 'Manages email campaigns and personalization',
     icon: Mail,
     color: '#FFFFFF',
+    hasThinkButton: false,
   },
   {
     id: 'booking_callprep',
@@ -52,6 +57,7 @@ export const AGENTS: Agent[] = [
     description: 'Prepares call scripts and manages bookings',
     icon: Phone,
     color: '#FFFFFF',
+    hasThinkButton: false,
   },
   {
     id: 'engineer',
@@ -60,6 +66,7 @@ export const AGENTS: Agent[] = [
     description: 'Handles technical issues and system monitoring',
     icon: Code,
     color: '#FFFFFF',
+    hasThinkButton: false,
   },
   {
     id: 'personal_assistant',
@@ -68,6 +75,7 @@ export const AGENTS: Agent[] = [
     description: 'Your intelligent assistant with access to all data. Coordinates with all agents.',
     icon: Sparkles,
     color: '#FFFFFF',
+    hasThinkButton: false,  // Sophia has advanced access but doesn't need Think button
   },
 ]
 

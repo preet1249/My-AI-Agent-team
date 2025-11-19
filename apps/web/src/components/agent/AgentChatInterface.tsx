@@ -264,7 +264,7 @@ export function AgentChatInterface({ agent }: AgentChatInterfaceProps) {
         <div className="max-w-4xl mx-auto px-4">
           <ChatInput
             onSend={handleSendMessage}
-            onThink={handleThink}
+            onThink={agent.hasThinkButton ? handleThink : undefined}
             disabled={isLoading}
           />
         </div>

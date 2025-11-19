@@ -1,6 +1,6 @@
 """
-Web Search Utility - Brave Search API (FREE 2000 requests/month)
-No rate limiting, official API, better than DuckDuckGo scraping
+Web Search Utility - Google Custom Search API
+Perfect search results with Google's search quality and indexing
 """
 from typing import List, Dict, Any, Optional
 import httpx
@@ -15,87 +15,90 @@ settings = get_settings()
 
 class WebSearcher:
     """
-    FREE web search using Brave Search API
-    - 2000 FREE requests/month (no credit card)
-    - No rate limiting
-    - Official API - won't get blocked
-    - Better results than DuckDuckGo
+    Google Custom Search API for perfect search results
+    - Uses Google's search quality and index
+    - 100 FREE searches/day per API key
+    - Best quality results for research
     """
 
     def __init__(self):
-        self.brave_api_key = os.getenv("BRAVE_SEARCH_API_KEY", "")
-        self.brave_url = "https://api.search.brave.com/res/v1/web/search"
+        self.google_api_key = os.getenv("GOOGLE_API_KEY", "")
+        self.google_cse_id = os.getenv("GOOGLE_CSE_ID", "")
+        self.google_url = "https://www.googleapis.com/customsearch/v1"
 
     async def search(
         self,
         query: str,
         max_results: int = 10,
-        country: str = "US"
+        search_type: str = "web"
     ) -> List[Dict[str, Any]]:
         """
-        Search using Brave Search API (FREE 2000 requests/month)
+        Search using Google Custom Search API
 
         Args:
             query: Search query
-            max_results: Maximum number of results (1-20)
-            country: Country code (US, UK, etc.)
+            max_results: Maximum number of results (1-10 per request)
+            search_type: Type of search (web, image, etc.)
 
         Returns:
             List of search results with title, url, snippet
         """
-        if not self.brave_api_key:
-            logger.warning("Brave Search API key not set, returning empty results")
+        if not self.google_api_key or not self.google_cse_id:
+            logger.warning("Google API key or CSE ID not set, returning empty results")
             return []
 
         try:
-            logger.info(f"Searching Brave Search for: {query}")
+            logger.info(f"Searching Google for: {query}")
 
-            headers = {
-                "Accept": "application/json",
-                "X-Subscription-Token": self.brave_api_key
-            }
+            all_results = []
+            # Google CSE allows max 10 results per request
+            # To get more, need to paginate with 'start' parameter
+            requests_needed = (max_results + 9) // 10  # Ceiling division
 
-            params = {
-                "q": query,
-                "count": min(max_results, 20),  # Max 20 per request
-                "country": country,
-                "search_lang": "en",
-                "safesearch": "moderate"
-            }
+            for page in range(min(requests_needed, 3)):  # Max 3 pages (30 results)
+                params = {
+                    "key": self.google_api_key,
+                    "cx": self.google_cse_id,
+                    "q": query,
+                    "num": min(10, max_results - len(all_results)),
+                    "start": page * 10 + 1
+                }
 
-            async with httpx.AsyncClient(timeout=30) as client:
-                response = await client.get(
-                    self.brave_url,
-                    headers=headers,
-                    params=params
-                )
-                response.raise_for_status()
-                data = response.json()
+                async with httpx.AsyncClient(timeout=30) as client:
+                    response = await client.get(
+                        self.google_url,
+                        params=params
+                    )
+                    response.raise_for_status()
+                    data = response.json()
 
-            # Extract web results
-            web_results = data.get("web", {}).get("results", [])
+                # Extract search results
+                items = data.get("items", [])
 
-            formatted_results = []
-            for r in web_results:
-                formatted_results.append({
-                    "title": r.get("title", ""),
-                    "url": r.get("url", ""),
-                    "snippet": r.get("description", ""),
-                    "source": "brave"
-                })
+                for item in items:
+                    all_results.append({
+                        "title": item.get("title", ""),
+                        "url": item.get("link", ""),
+                        "snippet": item.get("snippet", ""),
+                        "source": "google"
+                    })
 
-            logger.info(f"Found {len(formatted_results)} results from Brave Search")
-            return formatted_results
+                # Break if we have enough results or no more pages
+                if len(all_results) >= max_results or len(items) < 10:
+                    break
+
+            logger.info(f"Found {len(all_results)} results from Google Search")
+            return all_results[:max_results]
 
         except httpx.HTTPStatusError as e:
             if e.response.status_code == 429:
-                logger.error("Brave Search rate limit hit (2000/month exceeded)")
+                logger.error("Google API quota exceeded (100/day limit)")
             else:
-                logger.error(f"Brave Search API error: {e.response.status_code}")
+                logger.error(f"Google Search API error: {e.response.status_code}")
             return []
 
         except Exception as e:
-            logger.error(f"Brave Search failed: {e}")
+            logger.error(f"Google Search failed: {e}")
             return []
 
     async def search_and_scrape(

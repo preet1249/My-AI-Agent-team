@@ -17,6 +17,7 @@ export interface Agent {
   description: string
   icon: LucideIcon
   color: string
+  hasThinkButton?: boolean  // Whether this agent can use Google Search Think mode
 }
 
 export interface Message {
