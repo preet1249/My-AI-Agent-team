@@ -1,87 +1,101 @@
 """
-Web Search Utility - FREE DuckDuckGo Search (No API Key Required)
-Automatically finds and scrapes relevant websites/blogs
+Web Search Utility - Brave Search API (FREE 2000 requests/month)
+No rate limiting, official API, better than DuckDuckGo scraping
 """
 from typing import List, Dict, Any, Optional
-from duckduckgo_search import DDGS
 import httpx
 from bs4 import BeautifulSoup
 import logging
-import asyncio
-from tenacity import retry, stop_after_attempt, wait_exponential, retry_if_exception
+import os
+from app.config import get_settings
 
 logger = logging.getLogger(__name__)
+settings = get_settings()
 
 
 class WebSearcher:
     """
-    FREE web search using DuckDuckGo
-    - No API key required
-    - Unlimited searches
-    - Returns clean, structured results
-    - Automatic retry with exponential backoff
+    FREE web search using Brave Search API
+    - 2000 FREE requests/month (no credit card)
+    - No rate limiting
+    - Official API - won't get blocked
+    - Better results than DuckDuckGo
     """
 
     def __init__(self):
-        # Don't store DDGS instance - create fresh ones to avoid rate limits
-        pass
+        self.brave_api_key = os.getenv("BRAVE_SEARCH_API_KEY", "")
+        self.brave_url = "https://api.search.brave.com/res/v1/web/search"
 
-    @retry(
-        stop=stop_after_attempt(3),
-        wait=wait_exponential(multiplier=2, min=4, max=30),
-        retry=retry_if_exception(lambda e: "Ratelimit" in str(e))
-    )
     async def search(
         self,
         query: str,
         max_results: int = 10,
-        region: str = "wt-wt"
+        country: str = "US"
     ) -> List[Dict[str, Any]]:
         """
-        Search DuckDuckGo and return results with automatic retry on rate limits
+        Search using Brave Search API (FREE 2000 requests/month)
 
         Args:
             query: Search query
-            max_results: Maximum number of results
-            region: Region code (wt-wt = worldwide)
+            max_results: Maximum number of results (1-20)
+            country: Country code (US, UK, etc.)
 
         Returns:
             List of search results with title, url, snippet
         """
+        if not self.brave_api_key:
+            logger.warning("Brave Search API key not set, returning empty results")
+            return []
+
         try:
-            logger.info(f"Searching DuckDuckGo for: {query}")
+            logger.info(f"Searching Brave Search for: {query}")
 
-            # Add small delay to avoid rate limits
-            await asyncio.sleep(1)
+            headers = {
+                "Accept": "application/json",
+                "X-Subscription-Token": self.brave_api_key
+            }
 
-            # Create fresh DDGS instance for each search
-            ddgs = DDGS(timeout=20)
+            params = {
+                "q": query,
+                "count": min(max_results, 20),  # Max 20 per request
+                "country": country,
+                "search_lang": "en",
+                "safesearch": "moderate"
+            }
 
-            results = ddgs.text(
-                keywords=query,
-                region=region,
-                max_results=max_results
-            )
+            async with httpx.AsyncClient(timeout=30) as client:
+                response = await client.get(
+                    self.brave_url,
+                    headers=headers,
+                    params=params
+                )
+                response.raise_for_status()
+                data = response.json()
+
+            # Extract web results
+            web_results = data.get("web", {}).get("results", [])
 
             formatted_results = []
-            for r in results:
+            for r in web_results:
                 formatted_results.append({
                     "title": r.get("title", ""),
-                    "url": r.get("href", ""),
-                    "snippet": r.get("body", ""),
-                    "source": "duckduckgo"
+                    "url": r.get("url", ""),
+                    "snippet": r.get("description", ""),
+                    "source": "brave"
                 })
 
-            logger.info(f"Found {len(formatted_results)} results")
+            logger.info(f"Found {len(formatted_results)} results from Brave Search")
             return formatted_results
 
-        except Exception as e:
-            # If rate limited, log and retry (tenacity will handle)
-            if "Ratelimit" in str(e):
-                logger.warning(f"DuckDuckGo rate limit hit, retrying with backoff...")
-                raise  # Re-raise to trigger retry
+        except httpx.HTTPStatusError as e:
+            if e.response.status_code == 429:
+                logger.error("Brave Search rate limit hit (2000/month exceeded)")
+            else:
+                logger.error(f"Brave Search API error: {e.response.status_code}")
+            return []
 
-            logger.error(f"DuckDuckGo search failed: {e}")
+        except Exception as e:
+            logger.error(f"Brave Search failed: {e}")
             return []
 
     async def search_and_scrape(

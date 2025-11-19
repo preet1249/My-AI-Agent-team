@@ -32,11 +32,9 @@ google-api-python-client==2.108.0
 google-auth-httplib2==0.2.0
 google-auth-oauthlib==1.2.0
 
-# Web Scraping & Search
-duckduckgo-search==4.1.1  # FREE web search, no API key needed
-playwright==1.40.0
-beautifulsoup4==4.12.2
-lxml==4.9.3
+# Web Scraping (Brave Search API for search - no library needed)
+beautifulsoup4==4.12.2  # For scraping URL content
+lxml==4.9.3  # HTML parser for BeautifulSoup
 
 # Retry Logic
 tenacity==8.2.3
