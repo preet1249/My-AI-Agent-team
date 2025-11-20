@@ -1,5 +1,6 @@
 'use client'
 
+import React, { useState } from 'react'
 import { Message } from '@/types'
 import { motion } from 'framer-motion'
 import { User, Sparkles, Image as ImageIcon, FileText, Copy, Check } from 'lucide-react'
@@ -9,7 +10,6 @@ import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
 import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter'
 import { oneDark } from 'react-syntax-highlighter/dist/cjs/styles/prism'
-import { useState } from 'react'
 
 interface ChatMessageProps {
   message: Message
@@ -127,7 +127,7 @@ export function ChatMessage({ message, index }: ChatMessageProps) {
                           </button>
                         </div>
                         <SyntaxHighlighter
-                          style={oneDark}
+                          style={oneDark as { [key: string]: React.CSSProperties }}
                           language={match[1]}
                           PreTag="div"
                           customStyle={{
@@ -135,7 +135,6 @@ export function ChatMessage({ message, index }: ChatMessageProps) {
                             borderRadius: '8px',
                             fontSize: '12px',
                           }}
-                          {...props}
                         >
                           {codeString}
                         </SyntaxHighlighter>
