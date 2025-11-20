@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { motion } from 'framer-motion'
 import {
   Clock,
@@ -14,15 +14,42 @@ import {
 import { format } from 'date-fns'
 import { Conversation } from '@/types'
 import Link from 'next/link'
-
-// Conversations will be fetched from API
-// GET /api/conversations/{user_id}
-const initialConversations: Conversation[] = []
+import { API_URL } from '@/lib/constants'
 
 export function HistoryView() {
   const [searchQuery, setSearchQuery] = useState('')
   const [filterType, setFilterType] = useState<'all' | 'conversations' | 'documents'>('all')
-  const [conversations] = useState<Conversation[]>(initialConversations)
+  const [conversations, setConversations] = useState<Conversation[]>([])
+  const [isLoading, setIsLoading] = useState(true)
+
+  // Fetch conversations from API
+  useEffect(() => {
+    const fetchConversations = async () => {
+      try {
+        const response = await fetch(`${API_URL}/api/conversations/user-123?limit=50`)
+        if (response.ok) {
+          const data = await response.json()
+          if (data.success && data.data) {
+            setConversations(data.data.map((conv: any) => ({
+              id: conv.id,
+              title: conv.title || 'Untitled Chat',
+              preview: 'Click to view conversation',
+              lastMessage: new Date(conv.updated_at || conv.created_at),
+              agentType: conv.agent_type,
+              messages: [],
+              createdAt: new Date(conv.created_at),
+              updatedAt: new Date(conv.updated_at || conv.created_at),
+            })))
+          }
+        }
+      } catch (error) {
+        console.log('Could not fetch conversations')
+      } finally {
+        setIsLoading(false)
+      }
+    }
+    fetchConversations()
+  }, [])
 
   const filteredConversations = conversations.filter((conv) =>
     conv.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -90,10 +117,15 @@ export function HistoryView() {
       {/* Content */}
       <div className="flex-1 overflow-y-auto p-6">
         <div className="max-w-5xl mx-auto">
-          {filteredConversations.length === 0 ? (
+          {isLoading ? (
+            <div className="text-center py-12">
+              <div className="w-8 h-8 border-2 border-white/20 border-t-white rounded-full animate-spin mx-auto mb-4" />
+              <p className="text-dark-text-tertiary">Loading conversations...</p>
+            </div>
+          ) : filteredConversations.length === 0 ? (
             <div className="text-center py-12">
               <Clock className="w-16 h-16 mx-auto mb-4 text-dark-text-tertiary opacity-50" />
-              <h3 className="text-lg font-medium mb-2">No conversations found</h3>
+              <h3 className="text-lg font-medium mb-2 text-white">No conversations found</h3>
               <p className="text-dark-text-tertiary">
                 {searchQuery
                   ? 'Try adjusting your search query'

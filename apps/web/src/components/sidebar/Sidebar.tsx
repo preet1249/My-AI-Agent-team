@@ -1,8 +1,8 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import Link from 'next/link'
-import { usePathname } from 'next/navigation'
+import { usePathname, useRouter } from 'next/navigation'
 import {
   PanelLeft,
   MessageSquarePlus,
@@ -14,8 +14,9 @@ import {
   Settings,
   ChevronRight,
   User,
+  Plus,
 } from 'lucide-react'
-import { DEPARTMENTS, AGENTS } from '@/lib/constants'
+import { DEPARTMENTS, AGENTS, API_URL } from '@/lib/constants'
 import { motion } from 'framer-motion'
 
 interface SidebarProps {
@@ -25,17 +26,68 @@ interface SidebarProps {
 
 export function Sidebar({ onClose, mobile }: SidebarProps) {
   const pathname = usePathname()
+  const router = useRouter()
   const [expandedDept, setExpandedDept] = useState<string | null>(null)
+  const [recentChats, setRecentChats] = useState<Array<{id: string, title: string, href: string}>>([])
+
+  // Fetch recent conversations from API
+  useEffect(() => {
+    const fetchRecentChats = async () => {
+      try {
+        const response = await fetch(`${API_URL}/api/conversations/user-123?limit=5`)
+        if (response.ok) {
+          const data = await response.json()
+          if (data.success && data.data) {
+            setRecentChats(data.data.map((conv: any) => ({
+              id: conv.id,
+              title: conv.title || 'Untitled Chat',
+              href: `/chat/${conv.id}`
+            })))
+          }
+        }
+      } catch (error) {
+        console.log('Could not fetch recent chats')
+      }
+    }
+    fetchRecentChats()
+  }, [])
+
+  // Handle New Chat - create new conversation and navigate
+  const handleNewChat = async () => {
+    try {
+      const response = await fetch(`${API_URL}/api/conversations`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          user_id: 'user-123',
+          title: 'New Chat'
+        })
+      })
+
+      if (response.ok) {
+        const data = await response.json()
+        if (data.success && data.data.conversation_id) {
+          // Clear localStorage for main conversation
+          localStorage.removeItem('main_conversation')
+          // Navigate to new chat
+          router.push(`/chat/${data.data.conversation_id}`)
+        }
+      } else {
+        // Fallback: just go home and clear
+        localStorage.removeItem('main_conversation')
+        router.push('/')
+      }
+    } catch (error) {
+      // Fallback: just go home and clear
+      localStorage.removeItem('main_conversation')
+      router.push('/')
+    }
+
+    if (mobile) onClose?.()
+  }
 
   const menuItems = [
-    { icon: MessageSquarePlus, label: 'New Chat', href: '/', badge: null },
     { icon: Sparkles, label: 'Explore Agents', href: '/agents', badge: null },
-  ]
-
-  const recentChats = [
-    { id: '1', title: 'Product design trends analysis', href: '/chat/1' },
-    { id: '2', title: 'Lead generation for SaaS niche', href: '/chat/2' },
-    { id: '3', title: 'Marketing campaign strategy', href: '/chat/3' },
   ]
 
   const workspaceItems = [
@@ -66,6 +118,15 @@ export function Sidebar({ onClose, mobile }: SidebarProps) {
       <div className="flex-1 overflow-y-auto px-3 py-4 space-y-6">
         {/* Main Actions */}
         <div className="space-y-1">
+          {/* New Chat Button */}
+          <button
+            onClick={handleNewChat}
+            className="sidebar-item w-full bg-white/5 hover:bg-white/10"
+          >
+            <Plus className="w-5 h-5 flex-shrink-0 text-white" />
+            <span className="flex-1 text-sm font-medium text-left">New Chat</span>
+          </button>
+
           {menuItems.map((item) => (
             <Link
               key={item.href}
@@ -167,17 +228,23 @@ export function Sidebar({ onClose, mobile }: SidebarProps) {
             Recent
           </h3>
           <div className="space-y-1">
-            {recentChats.map((chat) => (
-              <Link
-                key={chat.id}
-                href={chat.href}
-                onClick={mobile ? onClose : undefined}
-                className="sidebar-item"
-              >
-                <MessageSquarePlus className="w-4 h-4 flex-shrink-0 opacity-50" />
-                <span className="text-sm truncate">{chat.title}</span>
-              </Link>
-            ))}
+            {recentChats.length === 0 ? (
+              <p className="text-xs text-dark-text-tertiary px-3 py-2">
+                No recent chats yet
+              </p>
+            ) : (
+              recentChats.map((chat) => (
+                <Link
+                  key={chat.id}
+                  href={chat.href}
+                  onClick={mobile ? onClose : undefined}
+                  className="sidebar-item"
+                >
+                  <MessageSquarePlus className="w-4 h-4 flex-shrink-0 opacity-50" />
+                  <span className="text-sm truncate">{chat.title}</span>
+                </Link>
+              ))
+            )}
           </div>
         </div>
       </div>

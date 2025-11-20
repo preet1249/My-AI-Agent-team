@@ -628,6 +628,143 @@ async def update_conversation(conversation_id: str, title: Optional[str] = None)
         raise HTTPException(status_code=500, detail=str(e))
 
 
+# ===== Multi-Agent Communication Endpoint =====
+
+class MultiAgentRequest(BaseModel):
+    user_id: str
+    prompt: str
+    context: Optional[Dict[str, Any]] = None
+
+
+# Agent mapping for multi-agent calls
+AGENT_INSTANCES = {
+    "product_manager": product_manager_agent,
+    "finance_manager": finance_manager_agent,
+    "marketing_strategist": marketing_strategist_agent,
+    "engineer": engineer_agent,
+    "personal_assistant": personal_assistant_agent,
+    "booking_callprep": booking_callprep_agent,
+}
+
+
+@app.post("/api/multi-agent")
+async def multi_agent_endpoint(request: MultiAgentRequest):
+    """
+    Multi-Agent Communication
+    Handles @mentions between agents like "@alex ask @kevin is this possible?"
+
+    Flow:
+    1. Parse @mentions from prompt
+    2. First agent asks the second agent
+    3. Second agent responds
+    4. First agent synthesizes final response
+    """
+    try:
+        # Parse @mentions
+        mentioned_agents = agent_router.parse_mentions(request.prompt)
+
+        if len(mentioned_agents) < 2:
+            # Not enough mentions, use default agent
+            raise HTTPException(
+                status_code=400,
+                detail="Please mention at least 2 agents (e.g., '@alex ask @kevin')"
+            )
+
+        logger.info(f"Multi-agent request with agents: {mentioned_agents}")
+
+        # Get first two agents
+        primary_agent_id = mentioned_agents[0]
+        secondary_agent_id = mentioned_agents[1]
+
+        primary_name = AGENT_ID_TO_NAME.get(primary_agent_id, primary_agent_id)
+        secondary_name = AGENT_ID_TO_NAME.get(secondary_agent_id, secondary_agent_id)
+
+        # Get agent instances
+        primary_agent = AGENT_INSTANCES.get(primary_agent_id)
+        secondary_agent = AGENT_INSTANCES.get(secondary_agent_id)
+
+        if not primary_agent or not secondary_agent:
+            raise HTTPException(
+                status_code=400,
+                detail=f"Invalid agent mentioned. Available: {list(AGENT_ID_TO_NAME.values())}"
+            )
+
+        # Extract the actual question (remove @mentions)
+        question = request.prompt
+        for name in AGENT_NAMES.keys():
+            question = question.replace(f"@{name}", "").strip()
+
+        # Remove common phrases
+        question = question.replace("ask", "").replace("tell", "").strip()
+
+        # Step 1: Secondary agent answers the question
+        logger.info(f"Step 1: {secondary_name} processing question")
+
+        secondary_prompt = f"""You are {secondary_name}. Another team member ({primary_name}) is asking you:
+
+{question}
+
+Please provide a clear, helpful answer based on your expertise."""
+
+        secondary_result = await secondary_agent.process(
+            user_id=request.user_id,
+            prompt=secondary_prompt,
+            context={"multi_agent": True, "requesting_agent": primary_agent_id}
+        )
+
+        secondary_response = secondary_result.get("response", "No response from agent")
+
+        # Step 2: Primary agent synthesizes the response
+        logger.info(f"Step 2: {primary_name} synthesizing response")
+
+        primary_prompt = f"""You are {primary_name}. You asked {secondary_name} the following question:
+
+"{question}"
+
+{secondary_name}'s response:
+{secondary_response}
+
+Now synthesize this information and provide a final, helpful response to the user.
+Acknowledge {secondary_name}'s input and add your own perspective if relevant."""
+
+        primary_result = await primary_agent.process(
+            user_id=request.user_id,
+            prompt=primary_prompt,
+            context={"multi_agent": True, "consulted_agent": secondary_agent_id}
+        )
+
+        primary_response = primary_result.get("response", "No response from agent")
+
+        # Format final response
+        final_response = f"""**{primary_name}** asked **{secondary_name}**: {question}
+
+---
+
+**{secondary_name}'s response:**
+{secondary_response}
+
+---
+
+**{primary_name}'s synthesis:**
+{primary_response}"""
+
+        return {
+            "success": True,
+            "data": {
+                "response": final_response,
+                "agents_involved": [primary_agent_id, secondary_agent_id],
+                "primary_agent": primary_name,
+                "secondary_agent": secondary_name
+            }
+        }
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Multi-agent endpoint error: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
 # Startup event
 @app.on_event("startup")
 async def startup_event():

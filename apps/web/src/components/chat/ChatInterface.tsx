@@ -16,6 +16,8 @@ interface ChatInterfaceProps {
 export function ChatInterface({ conversationId }: ChatInterfaceProps = {}) {
   const [messages, setMessages] = useState<Message[]>([])
   const [isLoading, setIsLoading] = useState(false)
+  const [currentConversationId, setCurrentConversationId] = useState<string | undefined>(conversationId)
+  const [isLoadingHistory, setIsLoadingHistory] = useState(false)
   const messagesEndRef = useRef<HTMLDivElement>(null)
 
   const scrollToBottom = () => {
@@ -26,26 +28,81 @@ export function ChatInterface({ conversationId }: ChatInterfaceProps = {}) {
     scrollToBottom()
   }, [messages])
 
-  // Load messages from localStorage
+  // Load messages from API when conversationId is provided
   useEffect(() => {
-    const storageKey = conversationId ? `conversation_${conversationId}` : 'main_conversation'
-    const savedMessages = localStorage.getItem(storageKey)
-    if (savedMessages) {
-      const parsed = JSON.parse(savedMessages)
-      setMessages(parsed.map((msg: any) => ({
-        ...msg,
-        timestamp: new Date(msg.timestamp)
-      })))
+    const loadConversation = async () => {
+      if (conversationId) {
+        setIsLoadingHistory(true)
+        try {
+          const response = await fetch(`${API_URL}/api/conversation/${conversationId}`)
+          if (response.ok) {
+            const data = await response.json()
+            if (data.success && data.data?.messages) {
+              setMessages(data.data.messages.map((msg: any) => ({
+                id: msg.id || nanoid(),
+                role: msg.role,
+                content: msg.content,
+                timestamp: new Date(msg.created_at || msg.timestamp),
+                agentType: msg.agent_name,
+              })))
+            }
+          }
+        } catch (error) {
+          console.log('Could not load conversation history')
+          // Fallback to localStorage
+          const storageKey = `conversation_${conversationId}`
+          const savedMessages = localStorage.getItem(storageKey)
+          if (savedMessages) {
+            const parsed = JSON.parse(savedMessages)
+            setMessages(parsed.map((msg: any) => ({
+              ...msg,
+              timestamp: new Date(msg.timestamp)
+            })))
+          }
+        } finally {
+          setIsLoadingHistory(false)
+        }
+      } else {
+        // Load from localStorage for main conversation
+        const savedMessages = localStorage.getItem('main_conversation')
+        if (savedMessages) {
+          const parsed = JSON.parse(savedMessages)
+          setMessages(parsed.map((msg: any) => ({
+            ...msg,
+            timestamp: new Date(msg.timestamp)
+          })))
+        }
+      }
     }
+    loadConversation()
+    setCurrentConversationId(conversationId)
   }, [conversationId])
 
-  // Save messages to localStorage whenever they change
+  // Save messages to localStorage as backup
   useEffect(() => {
     if (messages.length > 0) {
-      const storageKey = conversationId ? `conversation_${conversationId}` : 'main_conversation'
+      const storageKey = currentConversationId ? `conversation_${currentConversationId}` : 'main_conversation'
       localStorage.setItem(storageKey, JSON.stringify(messages))
     }
-  }, [messages, conversationId])
+  }, [messages, currentConversationId])
+
+  // Update conversation title after first user message
+  const updateConversationTitle = async (convId: string, firstMessage: string) => {
+    try {
+      const title = firstMessage.slice(0, 50) + (firstMessage.length > 50 ? '...' : '')
+      await fetch(`${API_URL}/api/conversation/${convId}?title=${encodeURIComponent(title)}`, {
+        method: 'PATCH',
+      })
+    } catch (error) {
+      console.log('Could not update conversation title')
+    }
+  }
+
+  // Helper to detect @mentions
+  const parseAtMentions = (text: string): string[] => {
+    const mentions = text.toLowerCase().match(/@(\w+)/g) || []
+    return mentions.map(m => m.substring(1))
+  }
 
   const handleSendMessage = async (
     content: string,
@@ -54,12 +111,16 @@ export function ChatInterface({ conversationId }: ChatInterfaceProps = {}) {
   ) => {
     if (!content.trim() && !attachments?.length) return
 
+    // Detect @mentions for multi-agent communication
+    const mentions = parseAtMentions(content)
+    const isMultiAgent = mentions.length >= 2
+
     const userMessage: Message = {
       id: nanoid(),
       role: 'user',
       content,
       timestamp: new Date(),
-      agentType: mentionedAgent as any,
+      agentType: isMultiAgent ? 'multi_agent' as any : mentionedAgent as any,
       attachments: attachments?.map((file) => ({
         id: nanoid(),
         type: file.type.startsWith('image/') ? 'image' : 'document',
@@ -73,25 +134,50 @@ export function ChatInterface({ conversationId }: ChatInterfaceProps = {}) {
     setIsLoading(true)
 
     try {
-      // Determine which agent endpoint to call
-      const agentEndpoint = mentionedAgent
-        ? `/api/agents/${mentionedAgent.replace('_', '-')}`
-        : '/api/agents/personal-assistant'
+      let response
+      let agentEndpoint
 
-      // Call real backend API
-      const response = await fetch(`${API_URL}${agentEndpoint}`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          user_id: 'user-123', // Replace with actual user ID from auth
-          prompt: content,
-          context: {
-            conversation_id: conversationId || 'default',
+      if (isMultiAgent) {
+        // Use multi-agent endpoint for @agent1 ask @agent2 style queries
+        agentEndpoint = '/api/multi-agent'
+        response = await fetch(`${API_URL}${agentEndpoint}`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
           },
-        }),
-      })
+          body: JSON.stringify({
+            user_id: 'user-123',
+            prompt: content,
+            context: {
+              conversation_id: currentConversationId || 'default',
+            },
+          }),
+        })
+      } else {
+        // Single agent or default
+        agentEndpoint = mentionedAgent
+          ? `/api/agents/${mentionedAgent.replace('_', '-')}`
+          : '/api/agents/personal-assistant'
+
+        response = await fetch(`${API_URL}${agentEndpoint}`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            user_id: 'user-123',
+            prompt: content,
+            context: {
+              conversation_id: currentConversationId || 'default',
+            },
+          }),
+        })
+      }
+
+      // Update conversation title if this is the first message
+      if (currentConversationId && messages.length === 0) {
+        updateConversationTitle(currentConversationId, content)
+      }
 
       if (!response.ok) {
         throw new Error(`API error: ${response.statusText}`)
@@ -106,7 +192,7 @@ export function ChatInterface({ conversationId }: ChatInterfaceProps = {}) {
         role: 'assistant',
         content: agentData.response || agentData.output?.response || 'No response from agent',
         timestamp: new Date(),
-        agentType: mentionedAgent as any,
+        agentType: isMultiAgent ? 'multi_agent' as any : mentionedAgent as any,
       }
 
       setMessages((prev) => [...prev, assistantMessage])
@@ -210,7 +296,14 @@ export function ChatInterface({ conversationId }: ChatInterfaceProps = {}) {
     <div className="h-full flex flex-col relative">
       {/* Messages Area */}
       <div className="flex-1 overflow-y-auto">
-        {messages.length === 0 ? (
+        {isLoadingHistory ? (
+          <div className="h-full flex items-center justify-center">
+            <div className="text-center">
+              <div className="w-8 h-8 border-2 border-white/20 border-t-white rounded-full animate-spin mx-auto mb-4" />
+              <p className="text-dark-text-tertiary">Loading conversation...</p>
+            </div>
+          </div>
+        ) : messages.length === 0 ? (
           <WelcomeScreen onQuickAction={handleSendMessage} />
         ) : (
           <div className="max-w-4xl mx-auto px-4 py-6 space-y-6">
