@@ -10,6 +10,7 @@ from app.utils.security import generate_external_id
 from app.utils.system_prompts import system_prompt_manager
 from app.utils.conversation_memory import conversation_memory
 from app.utils.toon_converter import toon_converter
+from app.utils.marketing_platforms import get_platform_prompt, get_combined_prompt, get_all_platforms
 import logging
 
 logger = logging.getLogger(__name__)
@@ -122,11 +123,23 @@ class MarketingStrategistAgent:
                 "marketing_context": context.get("marketing_data", {})
             }
 
-            # Get magic system prompt
-            system_prompt = system_prompt_manager.get_agent_prompt(
-                agent_name=self.agent_name,
-                business_context=business_context
-            )
+            # Check if specific platforms are selected
+            selected_platforms = context.get("platforms", [])
+            content_type = context.get("content_type", None)
+
+            if selected_platforms:
+                # Use platform-specific prompts
+                if len(selected_platforms) == 1:
+                    system_prompt = get_platform_prompt(selected_platforms[0], content_type)
+                else:
+                    system_prompt = get_combined_prompt(selected_platforms)
+                logger.info(f"Using platform-specific prompts for: {selected_platforms}")
+            else:
+                # Get default magic system prompt
+                system_prompt = system_prompt_manager.get_agent_prompt(
+                    agent_name=self.agent_name,
+                    business_context=business_context
+                )
 
             # Convert context to TOON format if large
             context_str = f"Marketing Context:\n{context}" if context else ""

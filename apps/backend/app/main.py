@@ -32,6 +32,7 @@ from app.utils.web_search import web_searcher
 from app.utils.agent_router import agent_router, AGENT_NAMES, AGENT_ID_TO_NAME
 from app.utils.openrouter_client import openrouter_client
 from app.utils.conversation_memory import conversation_memory
+from app.utils.marketing_platforms import get_all_platforms
 from app.config import get_settings
 
 import logging
@@ -519,6 +520,22 @@ async def get_user_alerts(user_id: str, read: Optional[bool] = None):
 
     except Exception as e:
         logger.error(f"Get alerts error: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+# ===== Marketing Platforms Endpoint =====
+
+@app.get("/api/marketing/platforms")
+async def get_marketing_platforms():
+    """Get list of available marketing platforms for content creation"""
+    try:
+        platforms = get_all_platforms()
+        return {
+            "success": True,
+            "data": platforms
+        }
+    except Exception as e:
+        logger.error(f"Get marketing platforms error: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
 
