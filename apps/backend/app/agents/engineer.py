@@ -118,7 +118,7 @@ class EngineerAgent:
             if context:
                 context_str = f"\n\nTechnical Context:\n{context}"
                 if len(context_str) > 500:
-                    context_str = f"\n\nTechnical Context:\n{toon_converter.to_toon(context)}"
+                    context_str = f"\n\nTechnical Context:\n{toon_converter.json_to_toon(context)}"
 
             # Build messages with conversation history
             messages = [
