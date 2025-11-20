@@ -246,6 +246,78 @@ async def leadgen_scraper_endpoint(request: LeadGenRequest):
         raise HTTPException(status_code=500, detail=str(e))
 
 
+@app.post("/api/agents/leadgen")
+async def leadgen_prompt_endpoint(request: AgentRequest):
+    """
+    Lead Generation Agent - Natural Language Interface
+    Accepts prompts like "find 10 leads in Austin tech companies"
+    Auto-saves leads to spreadsheet/database
+    """
+    try:
+        # Parse the prompt to extract search parameters
+        prompt = request.prompt.lower()
+
+        # Extract number of leads requested
+        import re
+        num_match = re.search(r'(\d+)\s*leads?', prompt)
+        max_leads = int(num_match.group(1)) if num_match else 10
+
+        # Build search query from prompt
+        # Remove common words to get the search query
+        search_query = request.prompt
+        for word in ['find', 'get', 'search', 'leads', 'lead', 'for', 'me', 'please', str(max_leads)]:
+            search_query = re.sub(rf'\b{word}\b', '', search_query, flags=re.IGNORECASE)
+        search_query = ' '.join(search_query.split())  # Clean whitespace
+
+        # Add "company contact email" to improve results
+        search_query = f"{search_query} company contact email"
+
+        logger.info(f"Lead Gen processing: '{request.prompt}' -> search: '{search_query}', max: {max_leads}")
+
+        # Call the lead gen agent with search query
+        result = await leadgen_scraper_agent.process(
+            user_id=request.user_id,
+            search_query=search_query,
+            criteria={"max_leads": max_leads},
+            external_id=request.external_id
+        )
+
+        # Format response
+        leads = result.get("leads", [])
+
+        if leads:
+            response_text = f"Found {len(leads)} leads:\n\n"
+            for i, lead in enumerate(leads, 1):
+                response_text += f"**{i}. {lead.get('company', 'Unknown')}**\n"
+                if lead.get('name'):
+                    response_text += f"   - Name: {lead['name']}\n"
+                if lead.get('email'):
+                    response_text += f"   - Email: {lead['email']}\n"
+                metadata = lead.get('metadata', {})
+                if metadata.get('role'):
+                    response_text += f"   - Role: {metadata['role']}\n"
+                if metadata.get('company_description'):
+                    response_text += f"   - About: {metadata['company_description'][:100]}...\n"
+                response_text += f"   - Score: {lead.get('score', 0)}/100\n\n"
+
+            response_text += f"\n✅ All {len(leads)} leads have been saved to your Spreadsheet!"
+        else:
+            response_text = "No leads found for your search. Try a different location or industry."
+
+        return {
+            "success": True,
+            "data": {
+                "response": response_text,
+                "leads_found": len(leads),
+                "leads": leads
+            }
+        }
+
+    except Exception as e:
+        logger.error(f"Lead Gen prompt endpoint error: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
 @app.post("/api/agents/outbound-emailer")
 async def outbound_emailer_endpoint(request: EmailCampaignRequest):
     """
