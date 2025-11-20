@@ -6,9 +6,26 @@ import { ChatInput } from '../chat/ChatInput'
 import { ChatMessage } from '../chat/ChatMessage'
 import { Agent, Message } from '@/types'
 import { nanoid } from 'nanoid'
-import { ArrowLeft } from 'lucide-react'
+import { ArrowLeft, Check, Save } from 'lucide-react'
 import Link from 'next/link'
 import { API_URL } from '@/lib/constants'
+
+// Marketing platforms for content creation
+const MARKETING_PLATFORMS = [
+  { id: 'instagram', name: 'Instagram', icon: '📸' },
+  { id: 'youtube', name: 'YouTube', icon: '🎬' },
+  { id: 'twitter', name: 'Twitter/X', icon: '🐦' },
+  { id: 'facebook', name: 'Facebook', icon: '📘' },
+  { id: 'threads', name: 'Threads', icon: '🧵' },
+  { id: 'linkedin', name: 'LinkedIn', icon: '💼' },
+  { id: 'medium', name: 'Medium', icon: '📝' },
+  { id: 'producthunt', name: 'Product Hunt', icon: '🚀' },
+  { id: 'reddit', name: 'Reddit', icon: '🤖' },
+  { id: 'hashnode', name: 'Hashnode', icon: '📚' },
+  { id: 'devto', name: 'Dev.to', icon: '👩‍💻' },
+  { id: 'blog', name: 'Blog', icon: '🌐' },
+  { id: 'github', name: 'GitHub', icon: '🐙' },
+]
 
 interface AgentChatInterfaceProps {
   agent: Agent
@@ -18,6 +35,21 @@ export function AgentChatInterface({ agent }: AgentChatInterfaceProps) {
   const [messages, setMessages] = useState<Message[]>([])
   const [isLoading, setIsLoading] = useState(false)
   const messagesEndRef = useRef<HTMLDivElement>(null)
+  const [selectedPlatforms, setSelectedPlatforms] = useState<string[]>([])
+  const [showSaveButton, setShowSaveButton] = useState(false)
+  const [lastResponse, setLastResponse] = useState<string>('')
+
+  // Check if this is the marketing strategist
+  const isMarketing = agent.id === 'marketing_strategist'
+
+  // Toggle platform selection
+  const togglePlatform = (platformId: string) => {
+    setSelectedPlatforms(prev =>
+      prev.includes(platformId)
+        ? prev.filter(id => id !== platformId)
+        : [...prev, platformId]
+    )
+  }
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
@@ -75,6 +107,16 @@ export function AgentChatInterface({ agent }: AgentChatInterfaceProps) {
       // Call specific agent endpoint
       const agentEndpoint = `/api/agents/${agent.id.replace('_', '-')}`
 
+      // Build context with platforms if marketing
+      const requestContext: Record<string, any> = {
+        conversation_id: `agent_${agent.id}`,
+      }
+
+      // Add selected platforms for marketing agent
+      if (isMarketing && selectedPlatforms.length > 0) {
+        requestContext.platforms = selectedPlatforms
+      }
+
       const response = await fetch(`${API_URL}${agentEndpoint}`, {
         method: 'POST',
         headers: {
@@ -83,9 +125,7 @@ export function AgentChatInterface({ agent }: AgentChatInterfaceProps) {
         body: JSON.stringify({
           user_id: 'user-123',
           prompt: content,
-          context: {
-            conversation_id: `agent_${agent.id}`,
-          },
+          context: requestContext,
         }),
       })
 
@@ -96,15 +136,23 @@ export function AgentChatInterface({ agent }: AgentChatInterfaceProps) {
       const data = await response.json()
       const agentData = data.data || data
 
+      const responseContent = agentData.response || agentData.output?.response || 'No response from agent'
+
       const assistantMessage: Message = {
         id: nanoid(),
         role: 'assistant',
-        content: agentData.response || agentData.output?.response || 'No response from agent',
+        content: responseContent,
         timestamp: new Date(),
         agentType: agent.id,
       }
 
       setMessages((prev) => [...prev, assistantMessage])
+
+      // Show save button for marketing content with platforms selected
+      if (isMarketing && selectedPlatforms.length > 0) {
+        setLastResponse(responseContent)
+        setShowSaveButton(true)
+      }
     } catch (error) {
       console.error('Error calling agent:', error)
 
@@ -214,6 +262,65 @@ export function AgentChatInterface({ agent }: AgentChatInterfaceProps) {
         </div>
       </div>
 
+      {/* Marketing Platform Selector */}
+      {isMarketing && (
+        <div className="border-b border-dark-border bg-dark-surface/50 px-6 py-3">
+          <div className="max-w-4xl mx-auto">
+            <p className="text-sm text-dark-text-secondary mb-2">
+              Select platforms for optimized content:
+            </p>
+            <div className="flex flex-wrap gap-2">
+              {MARKETING_PLATFORMS.map((platform) => (
+                <button
+                  key={platform.id}
+                  onClick={() => togglePlatform(platform.id)}
+                  className={`px-3 py-1.5 rounded-ai text-sm font-medium transition-all flex items-center gap-1.5 ${
+                    selectedPlatforms.includes(platform.id)
+                      ? 'bg-white text-dark-bg'
+                      : 'bg-dark-hover text-dark-text-secondary hover:text-white border border-dark-border'
+                  }`}
+                >
+                  <span>{platform.icon}</span>
+                  <span>{platform.name}</span>
+                  {selectedPlatforms.includes(platform.id) && (
+                    <Check className="w-3 h-3" />
+                  )}
+                </button>
+              ))}
+            </div>
+            {selectedPlatforms.length > 0 && (
+              <p className="text-xs text-dark-text-tertiary mt-2">
+                Selected: {selectedPlatforms.map(id =>
+                  MARKETING_PLATFORMS.find(p => p.id === id)?.name
+                ).join(', ')}
+              </p>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* Save to Documents Button */}
+      {showSaveButton && (
+        <div className="border-b border-dark-border bg-dark-surface/50 px-6 py-3">
+          <div className="max-w-4xl mx-auto flex items-center justify-between">
+            <p className="text-sm text-dark-text-secondary">
+              Content generated! Save to documents?
+            </p>
+            <button
+              onClick={() => {
+                // TODO: Implement save to documents
+                alert('Saving to documents... (Coming soon!)')
+                setShowSaveButton(false)
+              }}
+              className="bg-white text-dark-bg px-4 py-2 rounded-ai text-sm font-medium flex items-center gap-2 hover:bg-white/90 transition-colors"
+            >
+              <Save className="w-4 h-4" />
+              Save to Documents
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* Messages Area */}
       <div className="flex-1 overflow-y-auto">
         {messages.length === 0 ? (
@@ -228,6 +335,11 @@ export function AgentChatInterface({ agent }: AgentChatInterfaceProps) {
               <p className="text-dark-text-secondary">
                 {agent.description}. Start a conversation below.
               </p>
+              {isMarketing && (
+                <p className="text-dark-text-tertiary text-sm mt-2">
+                  👆 Select platforms above for optimized content
+                </p>
+              )}
             </div>
           </div>
         ) : (
