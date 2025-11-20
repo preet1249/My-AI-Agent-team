@@ -14,62 +14,28 @@ import {
 } from 'lucide-react'
 import { Sheet, SheetRow } from '@/types'
 
-const mockSheet: Sheet = {
-  id: '1',
+// Default empty sheet structure - Lead Gen will populate with real data
+// Format: Email, Name, Company Name, Niche, One-liner
+const emptyLeadsSheet: Sheet = {
+  id: 'leads',
   name: 'Leads Database',
   type: 'leads',
   columns: [
-    { id: 'name', name: 'Name', type: 'text' },
     { id: 'email', name: 'Email', type: 'email' },
+    { id: 'name', name: 'Name', type: 'text' },
     { id: 'company', name: 'Company', type: 'text' },
+    { id: 'niche', name: 'Niche', type: 'text' },
+    { id: 'oneliner', name: 'One-liner', type: 'text' },
     { id: 'status', name: 'Status', type: 'select', options: ['New', 'Contacted', 'Qualified', 'Won', 'Lost'] },
-    { id: 'score', name: 'Score', type: 'number' },
   ],
-  rows: [
-    {
-      id: '1',
-      data: {
-        name: 'Maya Singh',
-        email: 'maya@acme.com',
-        company: 'Acme Corp',
-        status: 'Qualified',
-        score: 85,
-      },
-      createdAt: new Date(2025, 10, 15),
-      updatedAt: new Date(2025, 10, 15),
-    },
-    {
-      id: '2',
-      data: {
-        name: 'John Doe',
-        email: 'john@techco.com',
-        company: 'TechCo',
-        status: 'Contacted',
-        score: 72,
-      },
-      createdAt: new Date(2025, 10, 14),
-      updatedAt: new Date(2025, 10, 14),
-    },
-    {
-      id: '3',
-      data: {
-        name: 'Sarah Johnson',
-        email: 'sarah@startup.io',
-        company: 'Startup Inc',
-        status: 'New',
-        score: 68,
-      },
-      createdAt: new Date(2025, 10, 13),
-      updatedAt: new Date(2025, 10, 13),
-    },
-  ],
-  createdAt: new Date(2025, 10, 1),
-  updatedAt: new Date(2025, 10, 15),
+  rows: [],  // Lead Gen will populate this
+  createdAt: new Date(),
+  updatedAt: new Date(),
 }
 
 export function SheetsView() {
-  const [sheets] = useState<Sheet[]>([mockSheet])
-  const [activeSheet, setActiveSheet] = useState<Sheet>(mockSheet)
+  const [sheets] = useState<Sheet[]>([emptyLeadsSheet])
+  const [activeSheet, setActiveSheet] = useState<Sheet>(emptyLeadsSheet)
   const [searchQuery, setSearchQuery] = useState('')
 
   const getStatusColor = (status: string) => {

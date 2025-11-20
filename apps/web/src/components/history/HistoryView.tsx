@@ -15,43 +15,14 @@ import { format } from 'date-fns'
 import { Conversation } from '@/types'
 import Link from 'next/link'
 
-const mockConversations: Conversation[] = [
-  {
-    id: '1',
-    title: 'Product design trends analysis',
-    preview: 'Analyzing current UX trends for mobile apps...',
-    lastMessage: new Date(2025, 10, 17, 14, 30),
-    agentType: 'product_manager',
-    messages: [],
-    createdAt: new Date(2025, 10, 17, 14, 30),
-    updatedAt: new Date(2025, 10, 17, 14, 30),
-  },
-  {
-    id: '2',
-    title: 'Lead generation for SaaS niche',
-    preview: 'Generated 150 qualified leads in the healthcare SaaS sector...',
-    lastMessage: new Date(2025, 10, 16, 10, 15),
-    agentType: 'leadgen_scraper',
-    messages: [],
-    createdAt: new Date(2025, 10, 16, 10, 15),
-    updatedAt: new Date(2025, 10, 16, 10, 15),
-  },
-  {
-    id: '3',
-    title: 'Marketing campaign strategy',
-    preview: 'Created multi-channel campaign for product launch...',
-    lastMessage: new Date(2025, 10, 15, 16, 45),
-    agentType: 'marketing_strategist',
-    messages: [],
-    createdAt: new Date(2025, 10, 15, 16, 45),
-    updatedAt: new Date(2025, 10, 15, 16, 45),
-  },
-]
+// Conversations will be fetched from API
+// GET /api/conversations/{user_id}
+const initialConversations: Conversation[] = []
 
 export function HistoryView() {
   const [searchQuery, setSearchQuery] = useState('')
   const [filterType, setFilterType] = useState<'all' | 'conversations' | 'documents'>('all')
-  const [conversations] = useState<Conversation[]>(mockConversations)
+  const [conversations] = useState<Conversation[]>(initialConversations)
 
   const filteredConversations = conversations.filter((conv) =>
     conv.title.toLowerCase().includes(searchQuery.toLowerCase()) ||

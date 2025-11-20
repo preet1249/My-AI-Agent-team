@@ -7,22 +7,15 @@ import { FileText, Upload, Search, Filter, Download, Trash2, Eye } from 'lucide-
 export function DocumentsView() {
   const [searchQuery, setSearchQuery] = useState('')
 
-  const mockDocuments = [
-    {
-      id: '1',
-      name: 'Q4 Marketing Strategy.pdf',
-      size: '2.4 MB',
-      uploadedAt: new Date(2025, 10, 15),
-      type: 'pdf',
-    },
-    {
-      id: '2',
-      name: 'Product Roadmap 2025.docx',
-      size: '1.8 MB',
-      uploadedAt: new Date(2025, 10, 14),
-      type: 'docx',
-    },
-  ]
+  // Real documents will be fetched from API
+  // Documents created by Marketing agent will appear here
+  const documents: Array<{
+    id: string
+    name: string
+    size: string
+    uploadedAt: Date
+    type: string
+  }> = []
 
   return (
     <div className="h-full flex flex-col overflow-hidden">
@@ -63,7 +56,7 @@ export function DocumentsView() {
       {/* Content */}
       <div className="flex-1 overflow-y-auto p-6">
         <div className="max-w-5xl mx-auto">
-          {mockDocuments.length === 0 ? (
+          {documents.length === 0 ? (
             <div className="text-center py-12">
               <FileText className="w-16 h-16 mx-auto mb-4 text-dark-text-tertiary opacity-50" />
               <h3 className="text-lg font-medium mb-2 text-white">No documents yet</h3>
@@ -77,7 +70,7 @@ export function DocumentsView() {
             </div>
           ) : (
             <div className="space-y-3">
-              {mockDocuments.map((doc, index) => (
+              {documents.map((doc, index) => (
                 <motion.div
                   key={doc.id}
                   initial={{ opacity: 0, y: 20 }}

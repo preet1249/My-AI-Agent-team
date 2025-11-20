@@ -14,30 +14,14 @@ import {
 import { format, startOfMonth, endOfMonth, eachDayOfInterval, isSameMonth, isSameDay, addMonths, subMonths, isToday } from 'date-fns'
 import { CalendarEvent } from '@/types'
 
-const mockEvents: CalendarEvent[] = [
-  {
-    id: '1',
-    title: 'Client Call - Acme Corp',
-    description: 'Discuss product demo',
-    startTime: new Date(2025, 10, 20, 10, 0),
-    endTime: new Date(2025, 10, 20, 11, 0),
-    type: 'call',
-    status: 'pending',
-  },
-  {
-    id: '2',
-    title: 'Follow up on leads',
-    startTime: new Date(2025, 10, 18, 14, 0),
-    endTime: new Date(2025, 10, 18, 15, 0),
-    type: 'task',
-    status: 'completed',
-  },
-]
+// Events will be fetched from API
+// Sophia can create events for task assignment
+const initialEvents: CalendarEvent[] = []
 
 export function CalendarView() {
   const [currentDate, setCurrentDate] = useState(new Date())
   const [selectedDate, setSelectedDate] = useState(new Date())
-  const [events] = useState<CalendarEvent[]>(mockEvents)
+  const [events] = useState<CalendarEvent[]>(initialEvents)
 
   const monthStart = startOfMonth(currentDate)
   const monthEnd = endOfMonth(currentDate)
