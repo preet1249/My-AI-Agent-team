@@ -139,7 +139,7 @@ export function DocumentsView() {
                       <h3 className="font-semibold text-white mb-1">{doc.title}</h3>
                       <p className="text-sm text-dark-text-secondary">
                         {formatSize(doc.content)} • {new Date(doc.created_at).toLocaleDateString()}
-                        {doc.metadata?.platforms?.length > 0 && (
+                        {doc.metadata?.platforms && doc.metadata.platforms.length > 0 && (
                           <span className="ml-2 text-dark-text-tertiary">
                             • {doc.metadata.platforms.join(', ')}
                           </span>
