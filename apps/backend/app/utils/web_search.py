@@ -128,36 +128,48 @@ class WebSearcher:
         scraped_results = []
         for result in results:
             url = result["url"]
-            content = await self._scrape_url(url)
+            scraped = await self._scrape_url(url)
 
-            scraped_results.append({
-                **result,
-                "content": content,
-                "scraped": content is not None
-            })
+            if scraped:
+                scraped_results.append({
+                    **result,
+                    "content": scraped.get("text", ""),
+                    "html": scraped.get("html", ""),
+                    "scraped": True
+                })
+            else:
+                scraped_results.append({
+                    **result,
+                    "content": None,
+                    "html": None,
+                    "scraped": False
+                })
 
         return scraped_results
 
-    async def _scrape_url(self, url: str, timeout: int = 10) -> Optional[str]:
+    async def _scrape_url(self, url: str, timeout: int = 10) -> Optional[Dict[str, str]]:
         """
-        Scrape URL and extract clean text
+        Scrape URL and extract both HTML and clean text
 
         Args:
             url: URL to scrape
             timeout: Request timeout
 
         Returns:
-            Cleaned text content or None
+            Dict with 'html' and 'text' or None
         """
         try:
             async with httpx.AsyncClient(timeout=timeout) as client:
                 response = await client.get(url, follow_redirects=True)
                 response.raise_for_status()
 
-                # Parse HTML
-                soup = BeautifulSoup(response.text, 'lxml')
+                # Store raw HTML for contact extraction
+                raw_html = response.text
 
-                # Remove script and style elements
+                # Parse HTML
+                soup = BeautifulSoup(raw_html, 'lxml')
+
+                # Remove script and style elements for text extraction
                 for script in soup(["script", "style", "nav", "footer", "header"]):
                     script.decompose()
 
@@ -169,8 +181,11 @@ class WebSearcher:
                 chunks = (phrase.strip() for line in lines for phrase in line.split("  "))
                 text = ' '.join(chunk for chunk in chunks if chunk)
 
-                # Limit to first 5000 chars to save tokens
-                return text[:5000]
+                # Return both HTML and text
+                return {
+                    "html": raw_html[:20000],  # Keep more HTML for email extraction
+                    "text": text[:5000]
+                }
 
         except Exception as e:
             logger.warning(f"Failed to scrape {url}: {e}")

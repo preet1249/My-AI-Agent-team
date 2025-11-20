@@ -307,9 +307,36 @@ export function AgentChatInterface({ agent }: AgentChatInterfaceProps) {
               Content generated! Save to documents?
             </p>
             <button
-              onClick={() => {
-                // TODO: Implement save to documents
-                alert('Saving to documents... (Coming soon!)')
+              onClick={async () => {
+                try {
+                  // Generate title from platforms
+                  const platformNames = selectedPlatforms.map(id =>
+                    MARKETING_PLATFORMS.find(p => p.id === id)?.name || id
+                  ).join(', ')
+                  const title = `${platformNames} Content - ${new Date().toLocaleDateString()}`
+
+                  // Save to documents API
+                  const response = await fetch(`${API_URL}/api/documents`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                      user_id: 'user-123',
+                      title,
+                      content: lastResponse,
+                      doc_type: 'marketing',
+                      platforms: selectedPlatforms
+                    })
+                  })
+
+                  if (response.ok) {
+                    alert('✅ Saved to Documents!')
+                  } else {
+                    alert('❌ Failed to save. Please try again.')
+                  }
+                } catch (error) {
+                  console.error('Save error:', error)
+                  alert('❌ Failed to save. Please try again.')
+                }
                 setShowSaveButton(false)
               }}
               className="bg-white text-dark-bg px-4 py-2 rounded-ai text-sm font-medium flex items-center gap-2 hover:bg-white/90 transition-colors"

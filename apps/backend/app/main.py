@@ -611,6 +611,61 @@ async def get_marketing_platforms():
         raise HTTPException(status_code=500, detail=str(e))
 
 
+# ===== Documents Endpoints =====
+
+class DocumentCreateRequest(BaseModel):
+    user_id: str
+    title: str
+    content: str
+    doc_type: str = "marketing"
+    platforms: Optional[List[str]] = None
+
+
+@app.post("/api/documents")
+async def create_document(request: DocumentCreateRequest):
+    """Save content as a document"""
+    try:
+        document = {
+            "user_id": request.user_id,
+            "title": request.title,
+            "content": request.content,
+            "type": request.doc_type,
+            "metadata": {
+                "platforms": request.platforms or []
+            },
+            "created_at": datetime.utcnow().isoformat()
+        }
+
+        result = supabase_client.table("documents").insert(document).execute()
+
+        return {
+            "success": True,
+            "data": result.data[0] if result.data else None
+        }
+
+    except Exception as e:
+        logger.error(f"Create document error: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.get("/api/documents/{user_id}")
+async def get_user_documents(user_id: str, limit: int = 50):
+    """Get user's documents"""
+    try:
+        result = supabase_client.table("documents") \
+            .select("*") \
+            .eq("user_id", user_id) \
+            .order("created_at", desc=True) \
+            .limit(limit) \
+            .execute()
+
+        return {"success": True, "data": result.data}
+
+    except Exception as e:
+        logger.error(f"Get documents error: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
 # ===== Conversation Endpoints =====
 
 class ConversationCreateRequest(BaseModel):

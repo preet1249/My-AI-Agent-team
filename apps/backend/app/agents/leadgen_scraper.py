@@ -93,10 +93,11 @@ class LeadGenScraperAgent:
 
                 # Also include search results content for analysis
                 for result in search_results:
-                    if result.get('content'):
-                        # Extract contacts from scraped content
+                    if result.get('scraped'):
+                        # Extract contacts from scraped HTML (use html for better extraction)
+                        html_content = result.get('html') or result.get('content', '')
                         contacts = contact_extractor.extract_all_contacts(
-                            html=result['content'],
+                            html=html_content,
                             url=result['url']
                         )
 

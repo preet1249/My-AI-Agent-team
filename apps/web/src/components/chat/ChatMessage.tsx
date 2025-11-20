@@ -99,11 +99,11 @@ export function ChatMessage({ message, index }: ChatMessageProps) {
         <div
           className={`px-4 py-3 rounded-ai-lg ${
             isUser
-              ? 'bg-white text-dark-bg'
+              ? 'bg-white text-black'
               : 'bg-dark-surface border border-dark-border text-dark-text-primary'
           }`}
         >
-          <div className="text-sm leading-relaxed prose prose-invert prose-sm max-w-none">
+          <div className={`text-sm leading-relaxed prose prose-sm max-w-none ${isUser ? 'prose-neutral' : 'prose-invert'}`}>
             <ReactMarkdown
               remarkPlugins={[remarkGfm]}
               components={{
