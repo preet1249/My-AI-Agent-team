@@ -168,82 +168,75 @@ class PersonalAssistantAgent:
 
     async def _gather_full_context(self, user_id: str) -> Dict[str, Any]:
         """
-        Gather complete context from all app data
+        Gather essential context from app data (optimized for token limits)
 
-        Returns comprehensive user data including:
-        - Recent tasks and their status
-        - Leads and their engagement
-        - Email history
-        - Calendar events
-        - Product insights
-        - Marketing campaigns
-        - Conversation history
+        Returns summarized user data for context awareness
         """
         context = {}
 
-        # Recent tasks (last 20)
+        # Recent tasks (last 5 only, essential fields)
         tasks = supabase_client.table("agent_tasks") \
-            .select("*") \
+            .select("id,agent_name,status,created_at") \
             .eq("user_id", user_id) \
             .order("created_at", desc=True) \
-            .limit(20) \
+            .limit(5) \
             .execute()
         context["recent_tasks"] = tasks.data if tasks.data else []
 
-        # Leads (top 30 by score)
+        # Top leads (5 only, essential fields)
         leads = supabase_client.table("leads") \
-            .select("*") \
+            .select("id,email,name,company,score,status") \
             .eq("user_id", user_id) \
             .order("score", desc=True) \
-            .limit(30) \
+            .limit(5) \
             .execute()
         context["leads"] = leads.data if leads.data else []
 
-        # Calendar events (upcoming)
+        # Upcoming calendar events (next 5 only)
         upcoming_events = supabase_client.table("calendar_events") \
-            .select("*") \
+            .select("id,title,start_time,event_type") \
             .eq("user_id", user_id) \
             .gte("start_time", datetime.utcnow().isoformat()) \
             .order("start_time") \
-            .limit(20) \
+            .limit(5) \
             .execute()
         context["calendar"] = upcoming_events.data if upcoming_events.data else []
 
-        # Product insights (recent 10)
+        # Recent insights (3 only, no large content fields)
         insights = supabase_client.table("product_insights") \
-            .select("*") \
+            .select("id,title,category,created_at") \
             .eq("user_id", user_id) \
             .order("created_at", desc=True) \
-            .limit(10) \
+            .limit(3) \
             .execute()
         context["insights"] = insights.data if insights.data else []
 
-        # Campaigns (recent 10)
+        # Active campaigns (3 only)
         campaigns = supabase_client.table("campaigns") \
-            .select("*") \
+            .select("id,name,status,created_at") \
             .eq("user_id", user_id) \
             .order("created_at", desc=True) \
-            .limit(10) \
+            .limit(3) \
             .execute()
         context["campaigns"] = campaigns.data if campaigns.data else []
 
-        # Email events (last 50)
-        email_events = supabase_client.table("email_events") \
-            .select("*") \
-            .eq("user_id", user_id) \
-            .order("created_at", desc=True) \
-            .limit(50) \
-            .execute()
-        context["email_activity"] = email_events.data if email_events.data else []
-
-        # Alerts (unread)
+        # Unread alerts (5 only)
         alerts = supabase_client.table("alerts") \
-            .select("*") \
+            .select("id,message,priority,created_at") \
             .eq("user_id", user_id) \
             .eq("read", False) \
             .order("created_at", desc=True) \
+            .limit(5) \
             .execute()
         context["alerts"] = alerts.data if alerts.data else []
+
+        # Add summary counts
+        context["summary"] = {
+            "tasks_count": len(context["recent_tasks"]),
+            "leads_count": len(context["leads"]),
+            "upcoming_events": len(context["calendar"]),
+            "unread_alerts": len(context["alerts"])
+        }
 
         return context
 
