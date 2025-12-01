@@ -101,6 +101,18 @@ class OpenRouterClient:
                 response.raise_for_status()
                 data = response.json()
 
+                # Check if response has expected format
+                if "choices" not in data:
+                    logger.error(f"OpenRouter response missing 'choices': {data}")
+                    # Check if it's an error response
+                    if "error" in data:
+                        raise Exception(f"OpenRouter error: {data['error']}")
+                    raise Exception(f"Unexpected OpenRouter response format: {data}")
+
+                if not data["choices"] or len(data["choices"]) == 0:
+                    logger.error(f"OpenRouter returned empty choices: {data}")
+                    raise Exception("OpenRouter returned no choices")
+
                 # Extract content and reasoning_details
                 message = data["choices"][0]["message"]
                 logger.debug(f"Message structure: {message}")
